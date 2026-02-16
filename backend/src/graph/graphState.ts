@@ -1,11 +1,11 @@
-import { IndiaTaxInput } from "../types/taxTypes";
-import { ProjectionResult } from "../modules/india/taxProjection";
-import { InsightsResult } from "../modules/india/insights";
-import { RegimeComparison } from "../modules/india/taxCalculator";
+import { CountryCode } from "../types/taxTypes";
+import { AnyCountryInput } from "../modules/tax/inputUtils";
+import { ProjectionPoint, TaxInsights, TaxReport } from "../modules/tax/types";
 import { ExecutiveSummary } from "../modules/india/executiveSummary";
 
 export interface TaxGraphState {
-  userInput: IndiaTaxInput;
+  country: CountryCode;
+  userInput: AnyCountryInput;
 
   options?: {
     includeAi?: boolean;
@@ -14,9 +14,9 @@ export interface TaxGraphState {
     scenarioCount?: number;
   };
 
-  comparisonResult?: RegimeComparison;
-  projection?: ProjectionResult[];
-  insights?: InsightsResult;
+  report?: TaxReport;
+  projection?: ProjectionPoint[];
+  insights?: TaxInsights;
   executiveSummary?: ExecutiveSummary;
 
   aiAnalysis?: {

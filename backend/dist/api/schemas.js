@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QaResponseSchema = exports.QaRequestSchema = exports.QaMessageSchema = exports.AiAnalysisSchema = exports.AnalyzeRequestSchema = exports.AnalyzeOptionsSchema = exports.IndiaTaxInputSchema = void 0;
+exports.QaResponseSchema = exports.QaRequestSchema = exports.QaMessageSchema = exports.AiAnalysisSchema = exports.AnalyzeRequestSchema = exports.AnalyzeOptionsSchema = exports.AeTaxInputSchema = exports.SgTaxInputSchema = exports.UkTaxInputSchema = exports.UsaTaxInputSchema = exports.IndiaTaxInputSchema = void 0;
 const zod_1 = require("zod");
 exports.IndiaTaxInputSchema = zod_1.z.object({
     annualSalary: zod_1.z.number().nonnegative(),
@@ -10,6 +10,32 @@ exports.IndiaTaxInputSchema = zod_1.z.object({
     homeLoanInterest: zod_1.z.number().nonnegative(),
     nps: zod_1.z.number().nonnegative(),
 });
+exports.UsaTaxInputSchema = zod_1.z
+    .object({
+    annualIncome: zod_1.z.number().nonnegative(),
+    otherIncome: zod_1.z.number().nonnegative(),
+    filingStatus: zod_1.z.enum(["SINGLE", "MFJ", "HOH"]),
+    itemizedDeductions: zod_1.z.number().nonnegative().optional(),
+})
+    .strict();
+exports.UkTaxInputSchema = zod_1.z
+    .object({
+    annualIncome: zod_1.z.number().nonnegative(),
+    otherIncome: zod_1.z.number().nonnegative(),
+})
+    .strict();
+exports.SgTaxInputSchema = zod_1.z
+    .object({
+    annualIncome: zod_1.z.number().nonnegative(),
+    otherIncome: zod_1.z.number().nonnegative(),
+})
+    .strict();
+exports.AeTaxInputSchema = zod_1.z
+    .object({
+    annualIncome: zod_1.z.number().nonnegative(),
+    otherIncome: zod_1.z.number().nonnegative(),
+})
+    .strict();
 exports.AnalyzeOptionsSchema = zod_1.z
     .object({
     financialYear: zod_1.z.custom().optional(),
@@ -19,12 +45,43 @@ exports.AnalyzeOptionsSchema = zod_1.z
     scenarioCount: zod_1.z.number().int().min(1).max(20).optional(),
 })
     .strict();
-exports.AnalyzeRequestSchema = zod_1.z
-    .object({
-    input: exports.IndiaTaxInputSchema,
-    options: exports.AnalyzeOptionsSchema.optional(),
-})
-    .strict();
+exports.AnalyzeRequestSchema = zod_1.z.discriminatedUnion("country", [
+    zod_1.z
+        .object({
+        country: zod_1.z.literal("IN"),
+        input: exports.IndiaTaxInputSchema,
+        options: exports.AnalyzeOptionsSchema.optional(),
+    })
+        .strict(),
+    zod_1.z
+        .object({
+        country: zod_1.z.literal("US"),
+        input: exports.UsaTaxInputSchema,
+        options: exports.AnalyzeOptionsSchema.optional(),
+    })
+        .strict(),
+    zod_1.z
+        .object({
+        country: zod_1.z.literal("UK"),
+        input: exports.UkTaxInputSchema,
+        options: exports.AnalyzeOptionsSchema.optional(),
+    })
+        .strict(),
+    zod_1.z
+        .object({
+        country: zod_1.z.literal("SG"),
+        input: exports.SgTaxInputSchema,
+        options: exports.AnalyzeOptionsSchema.optional(),
+    })
+        .strict(),
+    zod_1.z
+        .object({
+        country: zod_1.z.literal("AE"),
+        input: exports.AeTaxInputSchema,
+        options: exports.AnalyzeOptionsSchema.optional(),
+    })
+        .strict(),
+]);
 exports.AiAnalysisSchema = zod_1.z
     .object({
     summary: zod_1.z.string(),

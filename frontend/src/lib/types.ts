@@ -7,15 +7,79 @@ export interface IndiaTaxInput {
   nps: number;
 }
 
-export type Regime = "Old Regime" | "New Regime";
+export type CountryCode = "IN" | "US" | "UK" | "SG" | "AE";
+
+export interface UsaTaxInput {
+  annualIncome: number;
+  otherIncome: number;
+  filingStatus: "SINGLE" | "MFJ" | "HOH";
+  itemizedDeductions?: number;
+}
+
+export interface UkTaxInput {
+  annualIncome: number;
+  otherIncome: number;
+}
+
+export interface SgTaxInput {
+  annualIncome: number;
+  otherIncome: number;
+}
+
+export interface AeTaxInput {
+  annualIncome: number;
+  otherIncome: number;
+}
+
+export type AnyTaxInput = IndiaTaxInput | UsaTaxInput | UkTaxInput | SgTaxInput | AeTaxInput;
+
+export type CurrencyCode = "INR" | "USD" | "GBP" | "SGD" | "AED";
+
+export interface TaxSlabLine {
+  from: number;
+  to: number;
+  rate: number;
+  taxableAtRate: number;
+  tax: number;
+}
+
+export interface TaxDeductionLine {
+  label: string;
+  used: number;
+  cap?: number;
+  allowed: number;
+}
+
+export interface TaxOptionResult {
+  id: string;
+  name: string;
+  taxableIncome: number;
+  totalDeductions: number;
+  deductionsBreakdown?: TaxDeductionLine[];
+  slabBreakdown: TaxSlabLine[];
+  taxBeforeExtras: number;
+  extrasAmount: number;
+  totalTax: number;
+  effectiveRatePct: number;
+  notes?: string[];
+}
+
+export interface TaxReport {
+  country: CountryCode;
+  taxYear: string;
+  currency: CurrencyCode;
+  grossIncome: number;
+  options: TaxOptionResult[];
+  recommendedOptionId: string;
+  savings: number;
+  notes: string[];
+}
 
 export interface ProjectionResult {
   year: number;
   annualSalary: number;
   grossIncome: number;
-  recommended: Regime;
-  oldTax: number;
-  newTax: number;
+  recommended: string;
 }
 
 export interface ActionLever {
@@ -27,37 +91,34 @@ export interface ActionLever {
   estimatedTaxSavedPer10k: number;
 }
 
-export interface InsightsResult {
+export interface TaxInsights {
   stability: "High" | "Medium" | "Low";
   stabilityReason: string;
-  actionPlan: ActionLever[];
+  actionPlan: Array<{
+    key: string;
+    label: string;
+    deltaUsed: number;
+    estimatedTaxSaved: number;
+    estimatedTaxSavedPer10k: number;
+    notes?: string[];
+  }>;
   flipPoints: {
-    salaryFlip?: {
-      approxAnnualSalary: number;
-      recommendedBelow: Regime;
-      recommendedAbove: Regime;
-    };
-    deductionsToFlipToOld?: {
-      extraNeeded: number;
-      allocation: { deductions80C: number; nps: number; homeLoanInterest: number };
+    earnedIncomeFlip?: {
+      approxAnnualIncome: number;
+      recommendedBelow: string;
+      recommendedAbove: string;
     };
   };
   scenarios: Array<{
     name: string;
     description: string;
-    input: IndiaTaxInput;
-    comparison: {
-      grossIncome: number;
-      recommended: Regime;
-      savings: number;
-      oldRegime: { totalTax: number; taxableIncome: number; totalDeductions: number; effectiveRatePct: number };
-      newRegime: { totalTax: number; taxableIncome: number; totalDeductions: number; effectiveRatePct: number };
-    };
+    report: Pick<TaxReport, "grossIncome" | "options" | "recommendedOptionId" | "savings">;
   }>;
 }
 
 export interface AnalyzeResponse {
-  userInput: IndiaTaxInput;
+  country: CountryCode;
+  userInput: AnyTaxInput;
   options?: {
     includeAi?: boolean;
     projectionYears?: number;
@@ -68,35 +129,15 @@ export interface AnalyzeResponse {
     headline: string;
     bullets: string[];
   };
-  comparisonResult?: {
-    financialYear: string;
+  report?: TaxReport;
+  projection?: Array<{
+    year: number;
+    annualIncome: number;
     grossIncome: number;
-    recommended: Regime;
-    savings: number;
-    oldRegime: {
-      totalTax: number;
-      taxableIncome: number;
-      totalDeductions: number;
-      effectiveRatePct: number;
-      slabBreakdown: Array<{ from: number; to: number; rate: number; taxableAtRate: number; tax: number }>;
-      deductionsBreakdown: Array<{ label: string; used: number; cap?: number; allowed: number }>;
-    };
-    newRegime: {
-      totalTax: number;
-      taxableIncome: number;
-      totalDeductions: number;
-      effectiveRatePct: number;
-      slabBreakdown: Array<{ from: number; to: number; rate: number; taxableAtRate: number; tax: number }>;
-      deductionsBreakdown: Array<{ label: string; used: number; cap?: number; allowed: number }>;
-    };
-    deductionUsage: {
-      section80C: { used: number; limit: number; remaining: number };
-      nps: { used: number; limit: number; remaining: number };
-      homeLoanInterest: { used: number; limit: number; remaining: number };
-    };
-  };
-  projection?: ProjectionResult[];
-  insights?: InsightsResult;
+    recommendedOptionId: string;
+    optionTaxes: Record<string, number>;
+  }>;
+  insights?: TaxInsights;
   aiAnalysis?: {
     summary: string;
     stability: "High" | "Medium" | "Low";

@@ -12,6 +12,7 @@ const input = {
 };
 (async () => {
     const result = await graph_1.taxGraph.invoke({
+        country: "IN",
         userInput: input,
         options: {
             includeAi: false,

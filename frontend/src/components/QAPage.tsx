@@ -85,7 +85,7 @@ export function QAPage() {
 
     const contextForQa = {
       executiveSummary: result.executiveSummary,
-      comparisonResult: result.comparisonResult,
+      report: result.report,
       projection: result.projection,
       insights: result.insights,
       aiAnalysis: result.aiAnalysis,
@@ -148,7 +148,7 @@ export function QAPage() {
     );
   }
 
-  const summary = result.comparisonResult;
+  const report = result.report;
 
   return (
     <AuroraBackground className="min-h-screen h-auto justify-start bg-zinc-950 text-white dark:bg-zinc-950">
@@ -164,9 +164,13 @@ export function QAPage() {
           <p className="text-white/70">
             Ask follow-ups about your result. Answers are grounded in your computed analysis.
           </p>
-          {summary?.recommended ? (
+          {report?.recommendedOptionId ? (
             <div className="mt-3 text-xs text-white/60">
-              Context loaded • Recommended: <span className="text-white">{summary.recommended}</span>
+              Context loaded • Recommended:{" "}
+              <span className="text-white">
+                {report.options.find((o) => o.id === report.recommendedOptionId)?.name ??
+                  report.recommendedOptionId}
+              </span>
             </div>
           ) : null}
         </motion.div>

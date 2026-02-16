@@ -11,7 +11,11 @@ The AI Tax Decision Engine
 - API:
   - `GET /health`
   - `POST /analyze` body:
-    - `{ "input": { "annualSalary": 720000, "otherIncome": 0, "deductions80C": 0, "hra": 0, "homeLoanInterest": 0, "nps": 0 }, "options": { "includeAi": false, "projectionYears": 5, "projectionGrowthRatePct": 10, "scenarioCount": 8 } }`
+    - India example:
+      - `{ "country": "IN", "input": { "annualSalary": 720000, "otherIncome": 0, "deductions80C": 0, "hra": 0, "homeLoanInterest": 0, "nps": 0 }, "options": { "includeAi": true, "projectionYears": 5, "projectionGrowthRatePct": 10, "scenarioCount": 8 } }`
+    - US example:
+      - `{ "country": "US", "input": { "annualIncome": 90000, "otherIncome": 5000, "filingStatus": "SINGLE", "itemizedDeductions": 0 }, "options": { "includeAi": true } }`
+    - Supported `country`: `IN`, `US`, `UK`, `SG`, `AE` (all simplified estimators)
   - `POST /qa` body:
     - `{ "context": { "...": "use the /analyze response" }, "question": "Why is the recommended regime better?", "history": [{ "role": "user", "content": "..." }] }`
 

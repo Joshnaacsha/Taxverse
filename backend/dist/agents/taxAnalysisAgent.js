@@ -25,7 +25,7 @@ function extractJsonLike(text) {
 async function taxAnalysisAgent(state) {
     if (state.options?.includeAi === false)
         return state;
-    if (!state.comparisonResult)
+    if (!state.report)
         return state;
     const llm = createLlm();
     if (!llm) {
@@ -50,7 +50,7 @@ STRICT RULES:
 
 DATA:
 ${JSON.stringify({
-        comparisonResult: state.comparisonResult,
+        report: state.report,
         projection: state.projection,
         insights: state.insights,
     }, null, 2)}

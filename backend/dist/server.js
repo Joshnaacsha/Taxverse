@@ -27,8 +27,9 @@ async function main() {
                 details: parsed.error.flatten(),
             });
         }
-        const { input, options } = parsed.data;
+        const { country, input, options } = parsed.data;
         const result = await graph_1.taxGraph.invoke({
+            country,
             userInput: input,
             options: {
                 includeAi: options?.includeAi ?? true,

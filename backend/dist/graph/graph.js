@@ -2,17 +2,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.taxGraph = void 0;
 const langgraph_1 = require("@langchain/langgraph");
-const taxCalculator_1 = require("../modules/india/taxCalculator");
 const taxAnalysisAgent_1 = require("../agents/taxAnalysisAgent");
-const taxProjection_1 = require("../modules/india/taxProjection");
-const insights_1 = require("../modules/india/insights");
+const engine_1 = require("../modules/tax/engine");
+const projection_1 = require("../modules/tax/projection");
+const insights_1 = require("../modules/tax/insights");
 const GraphAnnotation = langgraph_1.Annotation.Root({
+    country: (0, langgraph_1.Annotation)(),
     userInput: (0, langgraph_1.Annotation)(),
     options: (0, langgraph_1.Annotation)({
         value: (x, y) => y ?? x,
         default: () => undefined,
     }),
-    comparisonResult: (0, langgraph_1.Annotation)({
+    report: (0, langgraph_1.Annotation)({
         value: (x, y) => y ?? x,
         default: () => undefined,
     }),
@@ -34,23 +35,32 @@ const graph = new langgraph_1.StateGraph(GraphAnnotation);
 // Node 1: Deterministic tax calculation
 // ----------------------------
 graph.addNode("calculateTax", async (state) => {
-    const comparisonResult = (0, taxCalculator_1.compareRegimes)(state.userInput);
+    const report = (0, engine_1.buildTaxReport)(state.country, state.userInput);
     // ✅ return ONLY what this node updates
     return {
-        comparisonResult,
+        report,
     };
 });
 graph.addNode("projectionNode", async (state) => {
     const years = state.options?.projectionYears ?? 3;
     const growthRatePct = state.options?.projectionGrowthRatePct ?? 10;
-    const projection = (0, taxProjection_1.simulateIncomeProjection)(state.userInput, years, growthRatePct);
+    const projection = (0, projection_1.simulateProjection)({
+        country: state.country,
+        input: state.userInput,
+        years,
+        annualGrowthRatePct: growthRatePct,
+    });
     return {
         projection,
     };
 });
 graph.addNode("insightsNode", async (state) => {
     const scenarioCount = state.options?.scenarioCount ?? 8;
-    const insights = (0, insights_1.buildInsights)(state.userInput, scenarioCount);
+    const insights = (0, insights_1.buildTaxInsights)({
+        country: state.country,
+        input: state.userInput,
+        scenarioCount,
+    });
     return {
         insights,
     };

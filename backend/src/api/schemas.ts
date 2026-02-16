@@ -10,6 +10,36 @@ export const IndiaTaxInputSchema = z.object({
   nps: z.number().nonnegative(),
 });
 
+export const UsaTaxInputSchema = z
+  .object({
+    annualIncome: z.number().nonnegative(),
+    otherIncome: z.number().nonnegative(),
+    filingStatus: z.enum(["SINGLE", "MFJ", "HOH"]),
+    itemizedDeductions: z.number().nonnegative().optional(),
+  })
+  .strict();
+
+export const UkTaxInputSchema = z
+  .object({
+    annualIncome: z.number().nonnegative(),
+    otherIncome: z.number().nonnegative(),
+  })
+  .strict();
+
+export const SgTaxInputSchema = z
+  .object({
+    annualIncome: z.number().nonnegative(),
+    otherIncome: z.number().nonnegative(),
+  })
+  .strict();
+
+export const AeTaxInputSchema = z
+  .object({
+    annualIncome: z.number().nonnegative(),
+    otherIncome: z.number().nonnegative(),
+  })
+  .strict();
+
 export const AnalyzeOptionsSchema = z
   .object({
     financialYear: z.custom<FinancialYear>().optional(),
@@ -20,12 +50,43 @@ export const AnalyzeOptionsSchema = z
   })
   .strict();
 
-export const AnalyzeRequestSchema = z
-  .object({
-    input: IndiaTaxInputSchema,
-    options: AnalyzeOptionsSchema.optional(),
-  })
-  .strict();
+export const AnalyzeRequestSchema = z.discriminatedUnion("country", [
+  z
+    .object({
+      country: z.literal("IN"),
+      input: IndiaTaxInputSchema,
+      options: AnalyzeOptionsSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      country: z.literal("US"),
+      input: UsaTaxInputSchema,
+      options: AnalyzeOptionsSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      country: z.literal("UK"),
+      input: UkTaxInputSchema,
+      options: AnalyzeOptionsSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      country: z.literal("SG"),
+      input: SgTaxInputSchema,
+      options: AnalyzeOptionsSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      country: z.literal("AE"),
+      input: AeTaxInputSchema,
+      options: AnalyzeOptionsSchema.optional(),
+    })
+    .strict(),
+]);
 
 export const AiAnalysisSchema = z
   .object({

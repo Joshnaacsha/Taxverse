@@ -1,21 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AnalyzeResponse } from "@/lib/types";
-import { formatInr, formatPct } from "@/lib/format";
+import { formatMoney, formatPct } from "@/lib/format";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { NoiseBackground } from "@/components/ui/noise-background";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { cn } from "@/lib/utils";
-import { TrendingUp, PieChart as PieChartIcon, BarChart3, MessageCircle, AlertCircle, DollarSign } from "lucide-react";
+import { TrendingUp, BarChart3, MessageCircle, DollarSign, FileText } from "lucide-react";
 import {
   BarChart,
   Bar,
   LineChart,
   Line,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -38,7 +35,7 @@ function NoiseButton(props: {
       containerClassName={cn(
         "inline-block rounded-xl p-1",
         props.disabled && "opacity-50 pointer-events-none",
-        props.className
+        props.className,
       )}
       className="p-0"
       gradientColors={["rgb(56, 189, 248)", "rgb(168, 85, 247)", "rgb(236, 72, 153)"]}
@@ -53,7 +50,7 @@ function NoiseButton(props: {
         className={cn(
           "w-full rounded-[0.7rem] bg-black/80 font-semibold text-white ring-1 ring-white/10 hover:bg-black/60",
           "transition-colors",
-          sizeClass
+          sizeClass,
         )}
       >
         {props.children}
@@ -62,31 +59,20 @@ function NoiseButton(props: {
   );
 }
 
-function Stat(props: { label: string; value: string; trend?: "up" | "down" | "neutral"; icon?: React.ReactNode }) {
-  const trendColor = {
-    up: "text-green-400",
-    down: "text-red-400",
-    neutral: "text-white/70",
-  }[props.trend ?? "neutral"];
-
-  const trendIcon = {
-    up: "↑",
-    down: "↓",
-    neutral: "→",
-  }[props.trend ?? "neutral"];
-
+function Stat(props: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-      <div className="flex items-center gap-2 text-xs text-white/60 mb-1">
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+      <div className="flex items-center gap-2 text-xs text-white/60 mb-2">
         {props.icon}
         {props.label}
       </div>
-      <div className="flex items-baseline gap-2">
-        <div className="text-2xl font-bold text-white">{props.value}</div>
-        <div className={`text-lg ${trendColor}`}>{trendIcon}</div>
-      </div>
+      <div className="text-2xl md:text-3xl font-bold text-white">{props.value}</div>
     </div>
   );
+}
+
+function money(report: AnalyzeResponse["report"] | undefined, value: number): string {
+  return formatMoney(value, report?.currency ?? "INR");
 }
 
 export function ResultsPage() {
@@ -96,12 +82,48 @@ export function ResultsPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = sessionStorage.getItem("taxResult");
-      if (stored) {
-        setResult(JSON.parse(stored));
-      }
+      if (stored) setResult(JSON.parse(stored));
       setLoading(false);
     }
   }, []);
+
+  const report = result?.report;
+  const insights = result?.insights;
+  const projection = result?.projection ?? [];
+
+  const recommendedOption = useMemo(() => {
+    if (!report) return null;
+    return report.options.find((o) => o.id === report.recommendedOptionId) ?? report.options[0] ?? null;
+  }, [report]);
+
+  const allOptionIds = useMemo(() => {
+    const ids: string[] = [];
+    const seen = new Set<string>();
+
+    const add = (id: string) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      ids.push(id);
+    };
+
+    for (const o of report?.options ?? []) add(o.id);
+    for (const s of insights?.scenarios ?? []) {
+      for (const o of s.report.options ?? []) add(o.id);
+    }
+
+    return ids;
+  }, [insights?.scenarios, report?.options]);
+
+  const optionNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const o of report?.options ?? []) map.set(o.id, o.name);
+    for (const s of insights?.scenarios ?? []) {
+      for (const o of s.report.options ?? []) {
+        if (!map.has(o.id)) map.set(o.id, o.name);
+      }
+    }
+    return map;
+  }, [insights?.scenarios, report?.options]);
 
   if (loading) {
     return (
@@ -111,278 +133,376 @@ export function ResultsPage() {
     );
   }
 
-  if (!result) {
+  if (!result || !report) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black pt-8 pb-12">
+      <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black pt-10 pb-12">
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-4">No Results Found</h1>
             <p className="text-white/60 mb-8">Please run the calculator first to see results.</p>
+            <NoiseButton onClick={() => (window.location.href = "/calculator")}>Go to calculator</NoiseButton>
           </div>
         </div>
       </div>
     );
   }
 
-  const summary = result.comparisonResult;
-  const insights = result.insights;
-  const projection = result.projection || [];
-  const savings = summary?.savings ?? 0;
-  const recommended = summary?.recommended;
+  const comparisonData = report.options.map((o) => ({
+    name: o.name,
+    tax: o.totalTax,
+  }));
 
-  // Prepare chart data
-  const comparisonData = [
-    {
-      name: "Old Regime",
-      tax: summary?.oldRegime.totalTax || 0,
-      effectiveRate: summary?.oldRegime.effectiveRatePct || 0,
-    },
-    {
-      name: "New Regime",
-      tax: summary?.newRegime.totalTax || 0,
-      effectiveRate: summary?.newRegime.effectiveRatePct || 0,
-    },
-  ];
+  const projectionData = projection.map((p) => ({
+    year: p.year,
+    ...p.optionTaxes,
+  }));
 
-  const taxBreakdownData = [
-    {
-      name: "Gross Income",
-      value: summary?.grossIncome || 0,
-    },
-    {
-      name: recommended === "Old Regime" ? "Old Regime Tax" : "New Regime Tax",
-      value:
-        recommended === "Old Regime"
-          ? summary?.oldRegime.totalTax || 0
-          : summary?.newRegime.totalTax || 0,
-    },
-  ];
-
-  const COLORS = ["#0ea5e9", "#a855f7", "#ec4899", "#f97316"];
+  const colors = ["#0ea5e9", "#a855f7", "#ec4899", "#f97316", "#14b8a6"];
+  const optionColor = (index: number) => colors[index % colors.length];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black pt-8 pb-12">
-      <div className="mx-auto max-w-6xl px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Analysis Results</h1>
-          <p className="text-white/60">
-            {summary?.financialYear} • Recommended: <span className="font-semibold text-cyan-400">{recommended}</span> •
-            Potential Savings: <span className="font-semibold text-green-400">{formatInr(savings)}</span>
+    <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black pt-10 pb-12">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="mb-10">
+          <h1 className="text-4xl md:text-6xl font-bold mb-3">Results</h1>
+          <p className="text-white/60 text-sm md:text-base">
+            {report.taxYear} • {report.country} • Recommended: {recommendedOption?.name ?? report.recommendedOptionId}
           </p>
+          {report.notes?.length ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {report.notes.slice(0, 3).map((n, idx) => (
+                <span key={idx} className="text-xs rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/70">
+                  {n}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
 
-        {/* Executive Summary */}
-        <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8 mb-8" radius={420}>
-          <div className="relative z-10">
-            {result.executiveSummary?.headline && (
-              <div className="mb-6">
-                <div className="text-sm font-semibold text-white/70 uppercase mb-3">Executive Summary</div>
-                <TextGenerateEffect words={result.executiveSummary.headline} duration={0.25} filter={false} />
-                {result.executiveSummary.bullets?.length ? (
-                  <ul className="mt-4 space-y-2 text-sm text-white/70">
-                    {result.executiveSummary.bullets.map((b, idx) => (
-                      <li key={idx} className="flex gap-2">
-                        <span className="text-cyan-400 mt-1">✓</span>
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-10">
+          <Stat label="Gross income" value={money(report, report.grossIncome)} icon={<DollarSign className="w-4 h-4 text-cyan-400" />} />
+          <Stat label="Recommended tax" value={money(report, recommendedOption?.totalTax ?? 0)} icon={<BarChart3 className="w-4 h-4 text-violet-400" />} />
+          <Stat label="Effective rate" value={formatPct(recommendedOption?.effectiveRatePct ?? 0)} icon={<TrendingUp className="w-4 h-4 text-amber-400" />} />
+          <Stat label="Savings" value={money(report, report.savings)} icon={<TrendingUp className="w-4 h-4 text-green-400" />} />
+        </div>
+
+        {result.executiveSummary?.headline ? (
+          <CardSpotlight className="rounded-3xl border-white/10 bg-black/40 p-8 mb-10" radius={520}>
+            <div className="relative z-10">
+              <h2 className="flex items-center gap-2 text-2xl font-semibold">
+                <FileText className="w-6 h-6" />
+                Executive Summary
+              </h2>
+              <div className="mt-3">
+                <TextGenerateEffect words={result.executiveSummary.headline} duration={0.22} filter={false} />
               </div>
-            )}
+              {result.executiveSummary.bullets?.length ? (
+                <ul className="mt-4 list-disc space-y-2 pl-5 text-sm md:text-base text-white/75">
+                  {result.executiveSummary.bullets.map((b, idx) => (
+                    <li key={idx}>{b}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </CardSpotlight>
+        ) : null}
+
+        <CardSpotlight className="rounded-3xl border-white/10 bg-black/40 p-8 mb-10" radius={520}>
+          <div className="relative z-10">
+            <h2 className="text-2xl font-semibold mb-5">Options (Table)</h2>
+            <div className="overflow-auto rounded-2xl border border-white/10">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-white/5 text-xs text-white/60">
+                  <tr>
+                    <th className="px-4 py-3">Option</th>
+                    <th className="px-4 py-3">Total tax</th>
+                    <th className="px-4 py-3">Taxable income</th>
+                    <th className="px-4 py-3">Deductions</th>
+                    <th className="px-4 py-3">Effective rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.options.map((o) => {
+                    const isRec = o.id === report.recommendedOptionId;
+                    return (
+                      <tr key={o.id} className="border-t border-white/10">
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-white">
+                            {o.name}
+                            {isRec ? (
+                              <span className="ml-2 rounded-full bg-green-500/20 px-2 py-0.5 text-xs text-green-300">
+                                Recommended
+                              </span>
+                            ) : null}
+                          </div>
+                          {o.notes?.length ? (
+                            <div className="mt-1 text-xs text-white/50">{o.notes.slice(0, 2).join(" • ")}</div>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 font-semibold">{money(report, o.totalTax)}</td>
+                        <td className="px-4 py-3">{money(report, o.taxableIncome)}</td>
+                        <td className="px-4 py-3">{money(report, o.totalDeductions)}</td>
+                        <td className="px-4 py-3">{formatPct(o.effectiveRatePct)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </CardSpotlight>
 
-        {/* Key Metrics */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Stat label="Gross Income" value={formatInr(summary?.grossIncome || 0)} icon={<DollarSign className="w-4 h-4 text-cyan-400" />} />
-          <Stat
-            label="Tax (Recommended)"
-            value={formatInr(recommended === "Old Regime" ? summary?.oldRegime.totalTax || 0 : summary?.newRegime.totalTax || 0)}
-            trend="down"
-            icon={<BarChart3 className="w-4 h-4 text-violet-400" />}
-          />
-          <Stat
-            label="Effective Tax Rate"
-            value={formatPct(
-              recommended === "Old Regime" ? summary?.oldRegime.effectiveRatePct || 0 : summary?.newRegime.effectiveRatePct || 0
-            )}
-            icon={<TrendingUp className="w-4 h-4 text-amber-400" />}
-          />
-          <Stat label="Savings" value={formatInr(savings)} trend="up" icon={<TrendingUp className="w-4 h-4 text-green-400" />} />
-        </div>
-
-        {/* Visualizations */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-8">
-          {/* Tax Comparison */}
-          <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8" radius={420}>
+        <div className="grid gap-8 lg:grid-cols-2 mb-10">
+          <CardSpotlight className="rounded-3xl border-white/10 bg-black/40 p-8" radius={520}>
             <div className="relative z-10">
-              <h3 className="flex items-center gap-2 text-lg font-semibold mb-6">
+              <h3 className="flex items-center gap-2 text-xl font-semibold mb-4">
                 <BarChart3 className="w-5 h-5" />
-                Regime Comparison
+                Option Comparison
               </h3>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={comparisonData}>
-                  <defs>
-                    <linearGradient id="colorOld" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#ec4899" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorNew" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="name" stroke="rgba(255,255,255,0.3)" />
                   <YAxis stroke="rgba(255,255,255,0.3)" />
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#1f2937", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
-                    formatter={(value) => formatInr(value as number)}
+                    contentStyle={{ backgroundColor: "#0b1220", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px" }}
+                    formatter={(value) => money(report, value as number)}
                   />
-                  <Bar dataKey="tax" fill="url(#colorOld)" name="Total Tax" radius={[8, 8, 0, 0]} />
+                  <Legend />
+                  <Bar dataKey="tax" name="Total tax" radius={[8, 8, 0, 0]} fill="#0ea5e9" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardSpotlight>
 
-          {/* Income Distribution */}
-          <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8" radius={420}>
+          <CardSpotlight className="rounded-3xl border-white/10 bg-black/40 p-8" radius={520}>
             <div className="relative z-10">
-              <h3 className="flex items-center gap-2 text-lg font-semibold mb-6">
-                <PieChartIcon className="w-5 h-5" />
-                Income Distribution
+              <h3 className="flex items-center gap-2 text-xl font-semibold mb-2">
+                <TrendingUp className="w-5 h-5" />
+                Projection Chart
               </h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={taxBreakdownData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value }) => `${name}`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {taxBreakdownData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatInr(value as number)} />
-                </PieChart>
+              <p className="text-sm text-white/60 mb-4">Projected tax by option.</p>
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={projectionData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="year" stroke="rgba(255,255,255,0.3)" />
+                  <YAxis stroke="rgba(255,255,255,0.3)" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#0b1220", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px" }}
+                    formatter={(value) => money(report, value as number)}
+                  />
+                  <Legend />
+                  {allOptionIds.map((id, idx) => (
+                    <Line
+                      key={id}
+                      type="monotone"
+                      dataKey={id}
+                      stroke={optionColor(idx)}
+                      strokeWidth={2.5}
+                      name={optionNameById.get(id) ?? id}
+                      dot={{ fill: optionColor(idx), r: 3 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  ))}
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </CardSpotlight>
         </div>
 
-        {/* Projection Chart */}
-        {projection.length > 0 && (
-          <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8 mb-8" radius={420}>
+        {projection.length ? (
+          <CardSpotlight className="rounded-3xl border-white/10 bg-black/40 p-8 mb-10" radius={520}>
             <div className="relative z-10">
-              <h3 className="flex items-center gap-2 text-lg font-semibold mb-6">
-                <TrendingUp className="w-5 h-5" />
-                5-Year Projection
-              </h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={projection}>
-                  <defs>
-                    <linearGradient id="colorOldTax" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#ec4899" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorNewTax" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="year" stroke="rgba(255,255,255,0.3)" />
-                  <YAxis stroke="rgba(255,255,255,0.3)" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#1f2937", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
-                    formatter={(value) => formatInr(value as number)}
-                  />
-                  <Legend />
-                  <Line type="monotone" dataKey="oldTax" stroke="#ec4899" strokeWidth={2.5} name="Old Regime Tax" dot={{ fill: "#ec4899", r: 4 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="newTax" stroke="#0ea5e9" strokeWidth={2.5} name="New Regime Tax" dot={{ fill: "#0ea5e9", r: 4 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <h2 className="text-2xl font-semibold mb-5">Projection (Table)</h2>
+              <div className="overflow-auto rounded-2xl border border-white/10">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-white/5 text-xs text-white/60">
+                    <tr>
+                      <th className="px-4 py-3">Year</th>
+                      <th className="px-4 py-3">Annual income</th>
+                      <th className="px-4 py-3">Gross income</th>
+                      <th className="px-4 py-3">Recommended</th>
+                      {allOptionIds.map((id) => (
+                        <th key={id} className="px-4 py-3">{optionNameById.get(id) ?? id}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projection.map((p) => (
+                      <tr key={p.year} className="border-t border-white/10">
+                        <td className="px-4 py-3">{p.year}</td>
+                        <td className="px-4 py-3">{money(report, p.annualIncome)}</td>
+                        <td className="px-4 py-3">{money(report, p.grossIncome)}</td>
+                        <td className="px-4 py-3">
+                          {optionNameById.get(p.recommendedOptionId) ?? p.recommendedOptionId}
+                        </td>
+                        {allOptionIds.map((id) => (
+                          <td key={id} className="px-4 py-3">{money(report, p.optionTaxes?.[id] ?? 0)}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </CardSpotlight>
-        )}
+        ) : null}
 
-        {/* Action Plan */}
-        {insights?.actionPlan && insights.actionPlan.length > 0 && (
-          <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8 mb-8" radius={420}>
+        {insights?.scenarios?.length ? (
+          <CardSpotlight className="rounded-3xl border-white/10 bg-black/40 p-8 mb-10" radius={520}>
             <div className="relative z-10">
-              <h3 className="flex items-center gap-2 text-lg font-semibold mb-4">
-                <TrendingUp className="w-5 h-5" />
-                Recommended Actions
-              </h3>
-              <p className="text-sm text-white/60 mb-6">Best next steps to optimize your tax liability</p>
+              <h2 className="text-2xl font-semibold mb-5">Scenarios (Table)</h2>
+              <div className="overflow-auto rounded-2xl border border-white/10">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-white/5 text-xs text-white/60">
+                    <tr>
+                      <th className="px-4 py-3">Scenario</th>
+                      <th className="px-4 py-3">Recommended</th>
+                      <th className="px-4 py-3">Savings</th>
+                      {allOptionIds.map((id) => (
+                        <th key={id} className="px-4 py-3">{optionNameById.get(id) ?? id}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {insights.scenarios.map((s) => {
+                      const recName = optionNameById.get(s.report.recommendedOptionId) ?? s.report.recommendedOptionId;
+                      const taxesById = new Map(s.report.options.map((o) => [o.id, o.totalTax] as const));
+                      return (
+                        <tr key={s.name} className="border-t border-white/10 align-top">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-white">{s.name}</div>
+                            <div className="text-xs text-white/50">{s.description}</div>
+                          </td>
+                          <td className="px-4 py-3">{recName}</td>
+                          <td className="px-4 py-3">{money(report, s.report.savings)}</td>
+                          {allOptionIds.map((id) => (
+                            <td key={id} className="px-4 py-3">{money(report, taxesById.get(id) ?? 0)}</td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </CardSpotlight>
+        ) : null}
+
+        <CardSpotlight className="rounded-3xl border-white/10 bg-black/40 p-8 mb-10" radius={520}>
+          <div className="relative z-10">
+            <h2 className="text-2xl font-semibold mb-2">Audit Trail</h2>
+            <p className="text-sm text-white/60 mb-5">Expand an option to see slabs and deductions.</p>
+
+            <div className="space-y-4">
+              {report.options.map((o) => (
+                <details key={o.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <summary className="cursor-pointer select-none">
+                    <span className="font-semibold text-white">{o.name}</span>
+                    <span className="ml-3 text-sm text-white/70">• Total tax {money(report, o.totalTax)}</span>
+                    {o.id === report.recommendedOptionId ? (
+                      <span className="ml-3 rounded-full bg-green-500/20 px-2 py-0.5 text-xs text-green-300">Recommended</span>
+                    ) : null}
+                  </summary>
+
+                  <div className="mt-5 grid gap-6 lg:grid-cols-2">
+                    <div>
+                      <div className="text-sm font-semibold text-white/80 mb-2">Deductions</div>
+                      {o.deductionsBreakdown?.length ? (
+                        <div className="overflow-auto rounded-xl border border-white/10">
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-white/5 text-xs text-white/60">
+                              <tr>
+                                <th className="px-3 py-2">Label</th>
+                                <th className="px-3 py-2">Allowed</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {o.deductionsBreakdown.map((d) => (
+                                <tr key={d.label} className="border-t border-white/10">
+                                  <td className="px-3 py-2">{d.label}</td>
+                                  <td className="px-3 py-2">{money(report, d.allowed)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-white/60">No deductions breakdown for this option.</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-semibold text-white/80 mb-2">Slab breakdown</div>
+                      {o.slabBreakdown?.length ? (
+                        <div className="overflow-auto rounded-xl border border-white/10">
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-white/5 text-xs text-white/60">
+                              <tr>
+                                <th className="px-3 py-2">From</th>
+                                <th className="px-3 py-2">To</th>
+                                <th className="px-3 py-2">Rate</th>
+                                <th className="px-3 py-2">Tax</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {o.slabBreakdown.map((s, idx) => (
+                                <tr key={idx} className="border-t border-white/10">
+                                  <td className="px-3 py-2">{money(report, s.from)}</td>
+                                  <td className="px-3 py-2">{money(report, s.to)}</td>
+                                  <td className="px-3 py-2">{(s.rate * 100).toFixed(0)}%</td>
+                                  <td className="px-3 py-2">{money(report, s.tax)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-white/60">No slab breakdown available.</div>
+                      )}
+                    </div>
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </CardSpotlight>
+
+        {insights?.actionPlan?.length ? (
+          <CardSpotlight className="rounded-3xl border-white/10 bg-black/40 p-8 mb-10" radius={520}>
+            <div className="relative z-10">
+              <h2 className="text-2xl font-semibold mb-4">Recommended Actions</h2>
+              <p className="text-sm text-white/60 mb-6">Deterministic suggestions ranked by impact.</p>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {insights.actionPlan.slice(0, 6).map((action, idx) => (
-                  <div key={idx} className="rounded-lg border border-white/10 bg-white/5 p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="font-semibold text-white text-sm">{action.label}</div>
-                      <div className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded">
-                        {formatInr(action.estimatedTaxSavedPer10k)}/10k
+                  <div key={idx} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div className="font-semibold text-white">{action.label}</div>
+                      <div className="shrink-0 text-xs bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded">
+                        {money(report, action.estimatedTaxSavedPer10k)}/10k
                       </div>
                     </div>
                     <div className="text-xs text-white/60">
-                      <div>Remaining: {formatInr(action.remaining)}</div>
-                      <div className="mt-1">Used: {formatInr(action.deltaUsed)}</div>
+                      Δ used: {money(report, action.deltaUsed)} • Est. saved: {money(report, action.estimatedTaxSaved)}
                     </div>
+                    {action.notes?.length ? (
+                      <div className="mt-2 text-xs text-white/50">{action.notes.slice(0, 1).join(" ")}</div>
+                    ) : null}
                   </div>
                 ))}
               </div>
             </div>
           </CardSpotlight>
-        )}
+        ) : null}
 
-        {/* Insights & Stability */}
-        {insights && (
-          <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8 mb-8" radius={420}>
-            <div className="relative z-10">
-              <h3 className="flex items-center gap-2 text-lg font-semibold mb-4">
-                <AlertCircle className="w-5 h-5" />
-                Key Insights
-              </h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <div className="text-sm font-semibold text-white/70 mb-2">Stability Analysis</div>
-                  <div className="p-4 rounded-lg border border-white/10 bg-white/5">
-                    <div className="text-2xl font-bold text-cyan-400">{insights.stability}</div>
-                    <p className="text-xs text-white/60 mt-2">{insights.stabilityReason}</p>
-                  </div>
-                </div>
-                {insights.scenarios && insights.scenarios.length > 0 && (
-                  <div>
-                    <div className="text-sm font-semibold text-white/70 mb-2">Scenario Summary</div>
-                    <div className="space-y-2">
-                      {insights.scenarios.slice(0, 3).map((scenario, idx) => (
-                        <div key={idx} className="p-3 rounded-lg border border-white/10 bg-white/5 text-xs">
-                          <div className="font-medium text-white">{scenario.name}</div>
-                          <div className="text-white/60">{scenario.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardSpotlight>
-        )}
-
-        {/* CTA */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <NoiseButton onClick={() => window.location.href = "/insights"}>
-            View Detailed Insights
+          <NoiseButton onClick={() => (window.location.href = "/qa")} className="w-full sm:w-auto">
+            <span className="inline-flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" /> Ask Questions
+            </span>
           </NoiseButton>
-          <NoiseButton onClick={() => window.location.href = "/qa"}>
-            Ask Questions
+          <NoiseButton onClick={() => (window.location.href = "/insights")} className="w-full sm:w-auto">
+            View Insights
           </NoiseButton>
         </div>
       </div>

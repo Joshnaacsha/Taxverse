@@ -1,19 +1,20 @@
 import { StateGraph, Annotation, START, END } from "@langchain/langgraph";
 import { TaxGraphState } from "./graphState";
-import { compareRegimes } from "../modules/india/taxCalculator";
 import { taxAnalysisAgent } from "../agents/taxAnalysisAgent";
-import { simulateIncomeProjection } from "../modules/india/taxProjection";
-import { buildInsights } from "../modules/india/insights";
+import { buildTaxReport } from "../modules/tax/engine";
+import { simulateProjection } from "../modules/tax/projection";
+import { buildTaxInsights } from "../modules/tax/insights";
 
 
 const GraphAnnotation = Annotation.Root({
+  country: Annotation<TaxGraphState["country"]>(),
   userInput: Annotation<TaxGraphState["userInput"]>(),
   options: Annotation<TaxGraphState["options"]>({
     value: (x, y) => y ?? x,
     default: () => undefined,
   }),
 
-  comparisonResult: Annotation<TaxGraphState["comparisonResult"]>({
+  report: Annotation<TaxGraphState["report"]>({
     value: (x, y) => y ?? x,
     default: () => undefined,
   }),
@@ -41,18 +42,23 @@ const graph = new StateGraph(GraphAnnotation);
 // Node 1: Deterministic tax calculation
 // ----------------------------
 graph.addNode("calculateTax", async (state: TaxGraphState) => {
-  const comparisonResult = compareRegimes(state.userInput);
+  const report = buildTaxReport(state.country as any, state.userInput as any);
 
   // ✅ return ONLY what this node updates
   return {
-    comparisonResult,
+    report,
   };
 });
 
 graph.addNode("projectionNode", async (state: TaxGraphState) => {
   const years = state.options?.projectionYears ?? 3;
   const growthRatePct = state.options?.projectionGrowthRatePct ?? 10;
-  const projection = simulateIncomeProjection(state.userInput, years, growthRatePct);
+  const projection = simulateProjection({
+    country: state.country,
+    input: state.userInput,
+    years,
+    annualGrowthRatePct: growthRatePct,
+  });
 
   return {
     projection,
@@ -61,7 +67,11 @@ graph.addNode("projectionNode", async (state: TaxGraphState) => {
 
 graph.addNode("insightsNode", async (state: TaxGraphState) => {
   const scenarioCount = state.options?.scenarioCount ?? 8;
-  const insights = buildInsights(state.userInput, scenarioCount);
+  const insights = buildTaxInsights({
+    country: state.country,
+    input: state.userInput,
+    scenarioCount,
+  });
 
   return {
     insights,

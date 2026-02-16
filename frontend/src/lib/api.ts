@@ -1,9 +1,10 @@
-import type { AnalyzeResponse, IndiaTaxInput, QaMessage, QaResponse } from "./types";
+import type { AnalyzeResponse, AnyTaxInput, CountryCode, QaMessage, QaResponse } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 
 export async function analyzeTax(params: {
-  input: IndiaTaxInput;
+  country: CountryCode;
+  input: AnyTaxInput;
   options?: {
     includeAi?: boolean;
     projectionYears?: number;

@@ -290,8 +290,15 @@ const ShaderMaterial = ({
 };
 
 const Shader: React.FC<ShaderProps> = ({ source, uniforms, maxFps = 60 }) => {
+  const eventSource = typeof document !== "undefined" ? document.body : undefined;
   return (
-    <Canvas className="absolute inset-0  h-full w-full">
+    <Canvas
+      className="absolute inset-0 h-full w-full"
+      // Explicit eventSource prevents @react-three/fiber from trying to attach
+      // listeners to a null parent during Next.js dev/hydration edge-cases.
+      eventSource={eventSource}
+      eventPrefix="client"
+    >
       <ShaderMaterial source={source} uniforms={uniforms} maxFps={maxFps} />
     </Canvas>
   );

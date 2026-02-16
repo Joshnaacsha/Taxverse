@@ -27,7 +27,7 @@ export async function taxAnalysisAgent(
   state: TaxGraphState
 ): Promise<TaxGraphState> {
   if (state.options?.includeAi === false) return state;
-  if (!state.comparisonResult) return state;
+  if (!state.report) return state;
 
   const llm = createLlm();
   if (!llm) {
@@ -54,7 +54,7 @@ STRICT RULES:
 DATA:
 ${JSON.stringify(
   {
-    comparisonResult: state.comparisonResult,
+    report: state.report,
     projection: state.projection,
     insights: state.insights,
   },

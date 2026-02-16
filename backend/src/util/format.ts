@@ -10,3 +10,24 @@ export function formatInr(value: number): string {
   }
 }
 
+export function formatMoney(value: number, currency: string): string {
+  const locale =
+    currency === "USD"
+      ? "en-US"
+      : currency === "GBP"
+        ? "en-GB"
+        : currency === "SGD"
+          ? "en-SG"
+          : currency === "AED"
+            ? "en-AE"
+            : "en-IN";
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${Math.round(value).toLocaleString(locale)} ${currency}`;
+  }
+}

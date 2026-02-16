@@ -1,5 +1,5 @@
 import { TaxGraphState } from "../../graph/graphState";
-import { formatInr } from "../../util/format";
+import { formatMoney } from "../../util/format";
 
 export interface ExecutiveSummary {
   headline: string;
@@ -7,28 +7,31 @@ export interface ExecutiveSummary {
 }
 
 export function buildExecutiveSummary(state: TaxGraphState): ExecutiveSummary {
-  const comparison = state.comparisonResult;
+  const report = state.report;
   const insights = state.insights;
 
-  if (!comparison) {
+  if (!report) {
     return {
       headline: "Run analysis to generate a decision summary.",
       bullets: [],
     };
   }
 
-  const recommended = comparison.recommended;
-  const savings = comparison.savings;
+  const recommendedOpt =
+    report.options.find((o) => o.id === report.recommendedOptionId) ??
+    report.options[0];
+  const savings = report.savings;
 
   const topLever = insights?.actionPlan?.[0];
-  const flipSalary = insights?.flipPoints?.salaryFlip?.approxAnnualSalary;
+  const flipIncome = insights?.flipPoints?.earnedIncomeFlip?.approxAnnualIncome;
 
-  const headline = `${recommended} recommended • savings ${formatInr(savings)}`;
+  const headline = `${recommendedOpt?.name ?? "Recommended"} • savings ${formatMoney(savings, report.currency)}`;
 
   const bullets: string[] = [];
-  bullets.push(`Gross income: ${formatInr(comparison.grossIncome)}.`);
+  bullets.push(`${report.taxYear} • Country: ${report.country}.`);
+  bullets.push(`Gross income: ${formatMoney(report.grossIncome, report.currency)}.`);
   bullets.push(
-    `Old tax: ${formatInr(comparison.oldRegime.totalTax)} • New tax: ${formatInr(comparison.newRegime.totalTax)}.`
+    `Best option tax: ${formatMoney(recommendedOpt?.totalTax ?? 0, report.currency)} (effective rate ${(recommendedOpt?.effectiveRatePct ?? 0).toFixed(2)}%).`
   );
 
   if (insights) {
@@ -37,16 +40,15 @@ export function buildExecutiveSummary(state: TaxGraphState): ExecutiveSummary {
 
   if (topLever && topLever.deltaUsed > 0) {
     bullets.push(
-      `Best next move: add ~${formatInr(topLever.deltaUsed)} to ${topLever.label} (est. ${formatInr(topLever.estimatedTaxSavedPer10k)} tax saved per ₹10k).`
+      `Best next move: add ~${formatMoney(topLever.deltaUsed, report.currency)} to ${topLever.label} (est. ${formatMoney(topLever.estimatedTaxSavedPer10k, report.currency)} tax saved per 10k).`
     );
   }
 
-  if (typeof flipSalary === "number" && Number.isFinite(flipSalary)) {
-    bullets.push(`Approx salary flip-point: ${formatInr(flipSalary)} annual salary.`);
+  if (typeof flipIncome === "number" && Number.isFinite(flipIncome)) {
+    bullets.push(`Approx flip-point: ${formatMoney(flipIncome, report.currency)} annual earned income.`);
   }
 
-  bullets.push("Note: HRA is simplified for demo; verify with real rules.");
+  bullets.push(...(report.notes?.slice(0, 2) ?? []));
 
   return { headline, bullets };
 }
-
