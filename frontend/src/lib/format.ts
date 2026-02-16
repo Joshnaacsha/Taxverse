@@ -1,0 +1,15 @@
+export function formatInr(value: number): string {
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `₹${Math.round(value).toLocaleString("en-IN")}`;
+  }
+}
+
+export function formatPct(value: number): string {
+  return `${value.toFixed(2)}%`;
+}

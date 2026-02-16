@@ -6,3 +6,5 @@ export interface IndiaTaxInput {
   homeLoanInterest: number;
   nps: number;
 }
+
+export type FinancialYear = "FY 2024-25";

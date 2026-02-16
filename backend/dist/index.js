@@ -13,6 +13,12 @@ const input = {
 (async () => {
     const result = await graph_1.taxGraph.invoke({
         userInput: input,
+        options: {
+            includeAi: false,
+            projectionYears: 5,
+            projectionGrowthRatePct: 10,
+            scenarioCount: 8,
+        },
     });
     console.log("FINAL RESULT:");
     console.log(JSON.stringify(result, null, 2));

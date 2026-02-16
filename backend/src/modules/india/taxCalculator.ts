@@ -1,184 +1,227 @@
-// India Income Tax Calculator
-// Financial Year: 2024–25
-// Assessment Year: 2025–26
+import { IndiaTaxInput, FinancialYear } from "../../types/taxTypes";
+import { getPolicy, Regime, Slab, TaxPolicy } from "./policy";
 
-import { IndiaTaxInput } from "../../types/taxTypes";
-
-interface Slab {
-  limit: number;
+export interface SlabLine {
+  from: number;
+  to: number;
   rate: number;
+  taxableAtRate: number;
+  tax: number;
 }
 
-function applySlabs(income: number, slabs: Slab[]): number {
+export interface DeductionLine {
+  label: string;
+  used: number;
+  cap?: number;
+  allowed: number;
+}
+
+export interface TaxComputation {
+  regime: Regime;
+  financialYear: FinancialYear;
+  grossIncome: number;
+  taxableIncome: number;
+  totalDeductions: number;
+  deductionsBreakdown: DeductionLine[];
+  rebate87A: { threshold: number; applied: boolean };
+  slabBreakdown: SlabLine[];
+  taxBeforeCess: number;
+  cessAmount: number;
+  totalTax: number;
+  effectiveRatePct: number;
+}
+
+export interface RegimeComparison {
+  financialYear: FinancialYear;
+  grossIncome: number;
+  oldRegime: TaxComputation;
+  newRegime: TaxComputation;
+  recommended: Regime;
+  savings: number;
+  margin: number; // abs(old - new)
+  deductionUsage: {
+    section80C: { used: number; limit: number; remaining: number };
+    nps: { used: number; limit: number; remaining: number };
+    homeLoanInterest: { used: number; limit: number; remaining: number };
+  };
+}
+
+function applySlabsWithBreakdown(income: number, slabs: Slab[]): { tax: number; breakdown: SlabLine[] } {
   let tax = 0;
-  let previousLimit = 0;
+  let previous = 0;
+  const breakdown: SlabLine[] = [];
 
   for (const slab of slabs) {
-    if (income > slab.limit) {
-      tax += (slab.limit - previousLimit) * slab.rate;
-      previousLimit = slab.limit;
-    } else {
-      tax += (income - previousLimit) * slab.rate;
-      break;
-    }
+    const to = slab.upto;
+    const upper = Number.isFinite(to) ? Math.min(income, to) : income;
+    const taxableAtRate = Math.max(upper - previous, 0);
+    const slabTax = taxableAtRate * slab.rate;
+
+    breakdown.push({
+      from: previous,
+      to: Number.isFinite(to) ? to : income,
+      rate: slab.rate,
+      taxableAtRate,
+      tax: slabTax,
+    });
+
+    tax += slabTax;
+    previous = to;
+    if (income <= to) break;
   }
 
-  return tax;
+  return { tax, breakdown };
 }
 
-function applyCess(tax: number): number {
-  return tax + tax * 0.04; // 4% Health & Education Cess
+function applyCess(taxBeforeCess: number, policy: TaxPolicy): { totalTax: number; cessAmount: number } {
+  const cessAmount = taxBeforeCess * policy.cessRate;
+  return { totalTax: taxBeforeCess + cessAmount, cessAmount };
 }
 
-/* =========================
-   OLD REGIME
-========================= */
-
-export function calculateOldRegime(input: IndiaTaxInput) {
+export function calculateOldRegime(input: IndiaTaxInput, financialYear: FinancialYear = "FY 2024-25"): TaxComputation {
+  const policy = getPolicy(financialYear);
   const grossIncome = input.annualSalary + input.otherIncome;
 
-  // Deduction caps
-  const deductions80C = Math.min(input.deductions80C, 150000);
-  const nps = Math.min(input.nps, 50000);
-  const homeLoan = Math.min(input.homeLoanInterest, 200000);
+  const d80cAllowed = Math.min(input.deductions80C, policy.caps.deductions80C);
+  const npsAllowed = Math.min(input.nps, policy.caps.nps);
+  const homeLoanAllowed = Math.min(input.homeLoanInterest, policy.caps.homeLoanInterest);
+  const standardDeduction = policy.standardDeduction;
 
-  const totalDeductions =
-    deductions80C +
-    nps +
-    homeLoan +
-    input.hra +
-    50000; // Standard deduction
+  const deductionsBreakdown: DeductionLine[] = [
+    { label: "Section 80C", used: input.deductions80C, cap: policy.caps.deductions80C, allowed: d80cAllowed },
+    { label: "NPS (80CCD(1B))", used: input.nps, cap: policy.caps.nps, allowed: npsAllowed },
+    { label: "Home loan interest (24b)", used: input.homeLoanInterest, cap: policy.caps.homeLoanInterest, allowed: homeLoanAllowed },
+    { label: "HRA (simplified)", used: input.hra, allowed: input.hra },
+    { label: "Standard deduction", used: standardDeduction, allowed: standardDeduction },
+  ];
 
+  const totalDeductions = deductionsBreakdown.reduce((sum, d) => sum + d.allowed, 0);
   const taxableIncome = Math.max(grossIncome - totalDeductions, 0);
 
-  // 87A Rebate (Old Regime)
-  if (taxableIncome <= 500000) {
+  const rebateApplied = taxableIncome <= policy.rebate87AOldThreshold;
+  if (rebateApplied) {
     return {
+      regime: "Old Regime",
+      financialYear: policy.financialYear,
+      grossIncome,
       taxableIncome,
       totalDeductions,
+      deductionsBreakdown,
+      rebate87A: { threshold: policy.rebate87AOldThreshold, applied: true },
+      slabBreakdown: [],
       taxBeforeCess: 0,
       cessAmount: 0,
       totalTax: 0,
+      effectiveRatePct: grossIncome > 0 ? 0 : 0,
     };
   }
 
-  const slabs: Slab[] = [
-    { limit: 250000, rate: 0 },
-    { limit: 500000, rate: 0.05 },
-    { limit: 1000000, rate: 0.2 },
-    { limit: Infinity, rate: 0.3 },
-  ];
-
-  const taxBeforeCess = applySlabs(taxableIncome, slabs);
-  const totalTax = applyCess(taxBeforeCess);
+  const { tax: taxBeforeCess, breakdown } = applySlabsWithBreakdown(taxableIncome, policy.oldSlabs);
+  const { totalTax, cessAmount } = applyCess(taxBeforeCess, policy);
 
   return {
+    regime: "Old Regime",
+    financialYear: policy.financialYear,
+    grossIncome,
     taxableIncome,
     totalDeductions,
+    deductionsBreakdown,
+    rebate87A: { threshold: policy.rebate87AOldThreshold, applied: false },
+    slabBreakdown: breakdown,
     taxBeforeCess,
-    cessAmount: totalTax - taxBeforeCess,
+    cessAmount,
     totalTax,
+    effectiveRatePct: grossIncome > 0 ? Number(((totalTax / grossIncome) * 100).toFixed(2)) : 0,
   };
 }
 
-/* =========================
-   NEW REGIME
-========================= */
-
-export function calculateNewRegime(input: IndiaTaxInput) {
+export function calculateNewRegime(input: IndiaTaxInput, financialYear: FinancialYear = "FY 2024-25"): TaxComputation {
+  const policy = getPolicy(financialYear);
   const grossIncome = input.annualSalary + input.otherIncome;
 
-  const standardDeduction = 50000;
-  const taxableIncome = Math.max(grossIncome - standardDeduction, 0);
+  const deductionsBreakdown: DeductionLine[] = [
+    { label: "Standard deduction", used: policy.standardDeduction, allowed: policy.standardDeduction },
+  ];
+  const totalDeductions = policy.standardDeduction;
+  const taxableIncome = Math.max(grossIncome - totalDeductions, 0);
 
-  // 87A Rebate (New Regime)
-  if (taxableIncome <= 700000) {
+  const rebateApplied = taxableIncome <= policy.rebate87ANewThreshold;
+  if (rebateApplied) {
     return {
+      regime: "New Regime",
+      financialYear: policy.financialYear,
+      grossIncome,
       taxableIncome,
-      totalDeductions: standardDeduction,
+      totalDeductions,
+      deductionsBreakdown,
+      rebate87A: { threshold: policy.rebate87ANewThreshold, applied: true },
+      slabBreakdown: [],
       taxBeforeCess: 0,
       cessAmount: 0,
       totalTax: 0,
+      effectiveRatePct: grossIncome > 0 ? 0 : 0,
     };
   }
 
-  const slabs: Slab[] = [
-    { limit: 300000, rate: 0 },
-    { limit: 600000, rate: 0.05 },
-    { limit: 900000, rate: 0.1 },
-    { limit: 1200000, rate: 0.15 },
-    { limit: 1500000, rate: 0.2 },
-    { limit: Infinity, rate: 0.3 },
-  ];
-
-  const taxBeforeCess = applySlabs(taxableIncome, slabs);
-  const totalTax = applyCess(taxBeforeCess);
+  const { tax: taxBeforeCess, breakdown } = applySlabsWithBreakdown(taxableIncome, policy.newSlabs);
+  const { totalTax, cessAmount } = applyCess(taxBeforeCess, policy);
 
   return {
+    regime: "New Regime",
+    financialYear: policy.financialYear,
+    grossIncome,
     taxableIncome,
-    totalDeductions: standardDeduction,
+    totalDeductions,
+    deductionsBreakdown,
+    rebate87A: { threshold: policy.rebate87ANewThreshold, applied: false },
+    slabBreakdown: breakdown,
     taxBeforeCess,
-    cessAmount: totalTax - taxBeforeCess,
+    cessAmount,
     totalTax,
+    effectiveRatePct: grossIncome > 0 ? Number(((totalTax / grossIncome) * 100).toFixed(2)) : 0,
   };
 }
 
-/* =========================
-   COMPARISON ENGINE
-========================= */
-
-export function compareRegimes(input: IndiaTaxInput) {
+export function compareRegimes(
+  input: IndiaTaxInput,
+  financialYear: FinancialYear = "FY 2024-25"
+): RegimeComparison {
+  const policy = getPolicy(financialYear);
   const grossIncome = input.annualSalary + input.otherIncome;
 
-  const oldRegime = calculateOldRegime(input);
-  const newRegime = calculateNewRegime(input);
+  const oldRegime = calculateOldRegime(input, policy.financialYear);
+  const newRegime = calculateNewRegime(input, policy.financialYear);
 
-  const recommended =
-    oldRegime.totalTax < newRegime.totalTax
-      ? "Old Regime"
-      : "New Regime";
+  const recommended: Regime = oldRegime.totalTax <= newRegime.totalTax ? "Old Regime" : "New Regime";
+  const savings = Math.abs(oldRegime.totalTax - newRegime.totalTax);
 
-  // Deduction usage summary (for future optimization agent)
   const deductionUsage = {
     section80C: {
       used: input.deductions80C,
-      limit: 150000,
-      remaining: Math.max(150000 - input.deductions80C, 0),
+      limit: policy.caps.deductions80C,
+      remaining: Math.max(policy.caps.deductions80C - input.deductions80C, 0),
     },
     nps: {
       used: input.nps,
-      limit: 50000,
-      remaining: Math.max(50000 - input.nps, 0),
+      limit: policy.caps.nps,
+      remaining: Math.max(policy.caps.nps - input.nps, 0),
     },
     homeLoanInterest: {
       used: input.homeLoanInterest,
-      limit: 200000,
-      remaining: Math.max(200000 - input.homeLoanInterest, 0),
+      limit: policy.caps.homeLoanInterest,
+      remaining: Math.max(policy.caps.homeLoanInterest - input.homeLoanInterest, 0),
     },
   };
 
   return {
-    financialYear: "FY 2024-25",
+    financialYear: policy.financialYear,
     grossIncome,
-
-    oldRegime: {
-      ...oldRegime,
-      effectiveRate:
-        grossIncome > 0
-          ? Number(((oldRegime.totalTax / grossIncome) * 100).toFixed(2))
-          : 0,
-    },
-
-    newRegime: {
-      ...newRegime,
-      effectiveRate:
-        grossIncome > 0
-          ? Number(((newRegime.totalTax / grossIncome) * 100).toFixed(2))
-          : 0,
-    },
-
-    savings: Math.abs(oldRegime.totalTax - newRegime.totalTax),
+    oldRegime,
+    newRegime,
     recommended,
+    savings,
+    margin: savings,
     deductionUsage,
   };
 }
+

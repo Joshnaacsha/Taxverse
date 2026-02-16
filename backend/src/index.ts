@@ -14,6 +14,12 @@ const input: IndiaTaxInput = {
 (async () => {
   const result = await taxGraph.invoke({
     userInput: input,
+    options: {
+      includeAi: false,
+      projectionYears: 5,
+      projectionGrowthRatePct: 10,
+      scenarioCount: 8,
+    },
   });
 
   console.log("FINAL RESULT:");

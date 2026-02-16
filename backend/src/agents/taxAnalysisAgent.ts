@@ -1,15 +1,46 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { TaxGraphState } from "../graph/graphState";
+import { AiAnalysisSchema } from "../api/schemas";
 
-const llm = new ChatGoogleGenerativeAI({
-  model: "gemini-2.5-flash",
-  temperature: 0.2, // VERY important for finance
-});
+function createLlm() {
+  if (!process.env.GOOGLE_API_KEY) return null;
+  return new ChatGoogleGenerativeAI({
+    model: "gemini-2.5-flash",
+    temperature: 0.2, // VERY important for finance
+  });
+}
+
+function extractJsonLike(text: string): string | null {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenced?.[1]) return fenced[1].trim();
+
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return text.slice(firstBrace, lastBrace + 1).trim();
+  }
+
+  return null;
+}
 
 export async function taxAnalysisAgent(
   state: TaxGraphState
 ): Promise<TaxGraphState> {
+  if (state.options?.includeAi === false) return state;
   if (!state.comparisonResult) return state;
+
+  const llm = createLlm();
+  if (!llm) {
+    return {
+      ...state,
+      aiAnalysis: {
+        summary: "AI explanation skipped (GOOGLE_API_KEY not set).",
+        stability: "Low",
+        futureWarning: "Set GOOGLE_API_KEY in your backend .env to enable AI.",
+        actionableAdvice: [],
+      },
+    };
+  }
 
   const prompt = `
 You are a financial analysis assistant.
@@ -21,7 +52,15 @@ STRICT RULES:
 - ONLY explain and analyze the given data
 
 DATA:
-${JSON.stringify(state.comparisonResult, null, 2)}
+${JSON.stringify(
+  {
+    comparisonResult: state.comparisonResult,
+    projection: state.projection,
+    insights: state.insights,
+  },
+  null,
+  2
+)}
 
 TASK:
 1. Explain why the recommended regime is better
@@ -40,17 +79,34 @@ Return ONLY valid JSON in this format:
 
   const response = await llm.invoke(prompt);
 
-  // Extract JSON from markdown code blocks if present
-  let jsonString = response.content as string;
-  const jsonMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (jsonMatch) {
-    jsonString = jsonMatch[1];
+  const content = String(response.content ?? "");
+  const jsonString = extractJsonLike(content);
+
+  if (!jsonString) {
+    return {
+      ...state,
+      aiAnalysis: {
+        summary: "AI analysis unavailable (no JSON returned).",
+        stability: "Low",
+        futureWarning: "Re-run with includeAi=true, and verify your API key is set.",
+        actionableAdvice: [],
+      },
+    };
   }
 
-  const aiAnalysis = JSON.parse(jsonString);
-
-  return {
-    ...state,
-    aiAnalysis,
-  };
+  try {
+    const parsed = JSON.parse(jsonString);
+    const aiAnalysis = AiAnalysisSchema.parse(parsed);
+    return { ...state, aiAnalysis };
+  } catch {
+    return {
+      ...state,
+      aiAnalysis: {
+        summary: "AI analysis unavailable (invalid JSON).",
+        stability: "Low",
+        futureWarning: "Try again; model output did not match required schema.",
+        actionableAdvice: [],
+      },
+    };
+  }
 }
