@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { AnalyzeResponse } from "@/lib/types";
+import type { AnalyzeResponse, SalaryResult } from "@/lib/types";
 import { formatMoney, formatPct } from "@/lib/format";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { NoiseBackground } from "@/components/ui/noise-background";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { cn } from "@/lib/utils";
-import { TrendingUp, BarChart3, MessageCircle, DollarSign, FileText } from "lucide-react";
+import { TrendingUp, BarChart3, MessageCircle, DollarSign, FileText, Share2, Download, CalendarClock, AlertTriangle } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -77,15 +77,53 @@ function money(report: AnalyzeResponse["report"] | undefined, value: number): st
 
 export function ResultsPage() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const [salary, setSalary] = useState<SalaryResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = sessionStorage.getItem("taxResult");
       if (stored) setResult(JSON.parse(stored));
+      const storedSalary = sessionStorage.getItem("salaryResult");
+      if (storedSalary) setSalary(JSON.parse(storedSalary));
       setLoading(false);
     }
   }, []);
+
+  const tdsPlan = salary?.tdsPlan;
+  const tdsWarning =
+    tdsPlan && tdsPlan.taxRemaining > Math.max(50_000, tdsPlan.annualTaxPayable * 0.35);
+  const tdsTimeline = useMemo(() => {
+    if (!tdsPlan || tdsPlan.monthsRemaining <= 0) return [];
+    const now = new Date();
+    return Array.from({ length: tdsPlan.monthsRemaining }, (_, idx) => {
+      const d = new Date(now.getFullYear(), now.getMonth() + idx, 1);
+      return new Intl.DateTimeFormat("en", { month: "short", year: "2-digit" }).format(d);
+    });
+  }, [tdsPlan]);
+
+  const shareText = useMemo(() => {
+    if (!result?.report) return "";
+    const rec = result.report.options.find((o) => o.id === result.report.recommendedOptionId);
+    const saved = formatMoney(result.report.savings, result.report.currency);
+    return `RegimeIQ: Recommended "${rec?.name ?? "option"}" for ${result.report.country} ${result.report.taxYear}. Saves ${saved}.`;
+  }, [result?.report]);
+
+  const onCopyShare = async () => {
+    if (!shareText) return;
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  const onExport = () => {
+    if (typeof window !== "undefined") window.print();
+  };
 
   const report = result?.report;
   const insights = result?.insights;
@@ -140,7 +178,7 @@ export function ResultsPage() {
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-4">No Results Found</h1>
             <p className="text-white/60 mb-8">Please run the calculator first to see results.</p>
-            <NoiseButton onClick={() => (window.location.href = "/calculator")}>Go to calculator</NoiseButton>
+            <NoiseButton onClick={() => (window.location.href = "/salary")}>Analyze salary</NoiseButton>
           </div>
         </div>
       </div>
@@ -163,11 +201,90 @@ export function ResultsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black pt-10 pb-12">
       <div className="mx-auto max-w-7xl px-4">
+        {salary?.breakdown ? (
+          <CardSpotlight className="rounded-3xl border-white/10 bg-black/40 p-8 mb-10" radius={520}>
+            <div className="relative z-10">
+              <h2 className="text-2xl font-semibold mb-2">Salary Snapshot (India)</h2>
+              <p className="text-sm text-white/60 mb-6">Based on your payslip/manual inputs.</p>
+
+              <div className="grid gap-4 md:grid-cols-3 mb-6">
+                <Stat label="Gross (Monthly)" value={formatMoney(salary.breakdown.grossMonthly, "INR")} icon={<DollarSign className="w-4 h-4 text-cyan-400" />} />
+                <Stat label="Deductions (Monthly)" value={formatMoney(salary.breakdown.deductionsMonthly, "INR")} icon={<FileText className="w-4 h-4 text-violet-400" />} />
+                <Stat label="In‑hand (Before Tax)" value={formatMoney(salary.breakdown.inHandMonthlyBeforeTax, "INR")} icon={<TrendingUp className="w-4 h-4 text-green-400" />} />
+              </div>
+
+              {tdsPlan ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-white/80">
+                    <CalendarClock className="w-4 h-4" />
+                    TDS Plan (projected)
+                    {tdsWarning ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 text-amber-200 text-xs px-2 py-1">
+                        <AlertTriangle className="w-3 h-3" /> High remaining
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-5 text-sm">
+                    <div>
+                      <div className="text-xs text-white/50">Annual tax</div>
+                      <div className="font-semibold">{formatMoney(tdsPlan.annualTaxPayable, "INR")}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-white/50">Paid YTD</div>
+                      <div className="font-semibold">{formatMoney(tdsPlan.taxPaidYtd, "INR")}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-white/50">Remaining</div>
+                      <div className="font-semibold">{formatMoney(tdsPlan.taxRemaining, "INR")}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-white/50">Months left</div>
+                      <div className="font-semibold">{tdsPlan.monthsRemaining}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-white/50">Suggested / month</div>
+                      <div className="font-semibold">{formatMoney(tdsPlan.suggestedMonthlyTdsFromNow, "INR")}</div>
+                    </div>
+                  </div>
+                  {tdsTimeline.length ? (
+                    <div className="mt-2">
+                      <div className="text-xs text-white/50 mb-1">Schedule</div>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {tdsTimeline.map((label, idx) => (
+                          <div key={label} className="flex-1 min-w-[120px] rounded-lg border border-white/10 bg-black/40 px-3 py-2">
+                            <div className="text-xs text-white/50">{label}</div>
+                            <div className="text-sm font-semibold">{formatMoney(tdsPlan.suggestedMonthlyTdsFromNow, "INR")}</div>
+                            {idx === 0 && tdsPlan.taxPaidYtd === 0 ? (
+                              <div className="text-[11px] text-amber-200 mt-1">Start now</div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </CardSpotlight>
+        ) : null}
+
         <div className="mb-10">
           <h1 className="text-4xl md:text-6xl font-bold mb-3">Results</h1>
           <p className="text-white/60 text-sm md:text-base">
             {report.taxYear} • {report.country} • Recommended: {recommendedOption?.name ?? report.recommendedOptionId}
           </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <NoiseButton onClick={onExport} size="sm">
+              <span className="inline-flex items-center gap-2 text-xs md:text-sm">
+                <Download className="w-4 h-4" /> Download / Print
+              </span>
+            </NoiseButton>
+            <NoiseButton onClick={onCopyShare} size="sm">
+              <span className="inline-flex items-center gap-2 text-xs md:text-sm">
+                <Share2 className="w-4 h-4" /> {copied ? "Copied!" : "Copy summary"}
+              </span>
+            </NoiseButton>
+          </div>
           {report.notes?.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
               {report.notes.slice(0, 3).map((n, idx) => (

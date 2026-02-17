@@ -176,6 +176,8 @@ export function CalculatorPage() {
       if (typeof window !== "undefined") {
         sessionStorage.setItem("taxResult", JSON.stringify(result));
         sessionStorage.setItem("taxInput", JSON.stringify({ country, input }));
+        sessionStorage.setItem(`taxResult-${country}`, JSON.stringify(result));
+        sessionStorage.setItem(`taxInput-${country}`, JSON.stringify({ country, input }));
       }
 
       router.push("/results");

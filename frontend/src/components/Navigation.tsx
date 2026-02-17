@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calculator, BarChart3, Lightbulb, MessageCircle } from "lucide-react";
+import { Home, Calculator, BarChart3, Lightbulb, MessageCircle, Wallet, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navigation() {
@@ -10,10 +10,12 @@ export function Navigation() {
 
   const links = [
     { href: "/", label: "Home", Icon: Home },
+    { href: "/salary", label: "Salary", Icon: Wallet },
     { href: "/calculator", label: "Calculator", Icon: Calculator },
     { href: "/results", label: "Results", Icon: BarChart3 },
     { href: "/insights", label: "Insights", Icon: Lightbulb },
     { href: "/qa", label: "Q&A", Icon: MessageCircle },
+    { href: "/itr-guide", label: "ITR Guide", Icon: FileText },
   ];
 
   return (
@@ -57,7 +59,7 @@ export function Navigation() {
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden grid grid-cols-5 gap-1 pb-2">
+        <div className="md:hidden grid grid-cols-7 gap-1 pb-2">
           {links.map((link) => {
             const Icon = link.Icon;
             return (

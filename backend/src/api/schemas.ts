@@ -10,6 +10,67 @@ export const IndiaTaxInputSchema = z.object({
   nps: z.number().nonnegative(),
 });
 
+export const PayslipParseRequestSchema = z
+  .object({
+    filename: z.string().min(1).max(200),
+    mimeType: z.literal("application/pdf"),
+    dataBase64: z.string().min(50),
+  })
+  .strict();
+
+export const PayslipParseResponseSchema = z
+  .object({
+    confidence: z.enum(["low", "medium", "high"]),
+    componentsMonthly: z
+      .object({
+        basic: z.number().nonnegative().optional(),
+        hra: z.number().nonnegative().optional(),
+        specialAllowance: z.number().nonnegative().optional(),
+        otherAllowance: z.number().nonnegative().optional(),
+        bonusMonthly: z.number().nonnegative().optional(),
+      })
+      .optional(),
+    deductionsMonthly: z
+      .object({
+        employeePf: z.number().nonnegative().optional(),
+        professionalTax: z.number().nonnegative().optional(),
+        otherDeductions: z.number().nonnegative().optional(),
+      })
+      .optional(),
+    tdsPaidYtd: z.number().nonnegative().optional(),
+    notes: z.array(z.string()).optional(),
+    extractedTextPreview: z.string().optional(),
+  })
+  .strict();
+
+export const IndiaSalaryAnalyzeRequestSchema = z
+  .object({
+    mode: z.enum(["manual", "payslip_pdf"]),
+    componentsMonthly: z
+      .object({
+        basic: z.number().nonnegative(),
+        hra: z.number().nonnegative(),
+        specialAllowance: z.number().nonnegative(),
+        otherAllowance: z.number().nonnegative(),
+        bonusMonthly: z.number().nonnegative(),
+      })
+      .strict(),
+    deductionsMonthly: z
+      .object({
+        employeePf: z.number().nonnegative(),
+        professionalTax: z.number().nonnegative(),
+        otherDeductions: z.number().nonnegative(),
+      })
+      .strict(),
+    otherIncomeAnnual: z.number().nonnegative().default(0),
+    investments80CAnnual: z.number().nonnegative().default(0),
+    npsAnnual: z.number().nonnegative().default(0),
+    homeLoanInterestAnnual: z.number().nonnegative().default(0),
+    tdsPaidYtd: z.number().nonnegative().default(0),
+    monthsRemaining: z.number().int().min(0).max(12).default(0),
+  })
+  .strict();
+
 export const UsaTaxInputSchema = z
   .object({
     annualIncome: z.number().nonnegative(),
@@ -120,3 +181,5 @@ export const QaResponseSchema = z
   .strict();
 
 export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;
+export type IndiaSalaryAnalyzeRequest = z.infer<typeof IndiaSalaryAnalyzeRequestSchema>;
+export type PayslipParseRequest = z.infer<typeof PayslipParseRequestSchema>;

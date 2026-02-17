@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import type { AnalyzeResponse, QaMessage } from "@/lib/types";
+import { useEffect, useState, useRef, useMemo } from "react";
+import type { AnalyzeResponse, QaMessage, SalaryResult } from "@/lib/types";
 import { askQuestion } from "@/lib/api";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { NoiseBackground } from "@/components/ui/noise-background";
@@ -50,6 +50,9 @@ function NoiseButton(props: {
 
 export function QAPage() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const [salary, setSalary] = useState<SalaryResult | null>(null);
+  const [country, setCountry] = useState<string | null>(null);
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<QaMessage[]>([]);
@@ -60,17 +63,59 @@ export function QAPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem("taxResult");
-      if (stored) {
-        setResult(JSON.parse(stored));
+      const countries: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (!key) continue;
+        const m = key.match(/^taxResult-(.+)$/);
+        if (m) countries.push(m[1]);
       }
+      const deduped = Array.from(new Set(countries));
+      setAvailableCountries(deduped);
+
+      const pick = deduped.includes("IN") ? "IN" : deduped[0] ?? null;
+      const loadFor = pick ?? "default";
+
+      const payload =
+        loadFor === "default"
+          ? sessionStorage.getItem("taxResult")
+          : sessionStorage.getItem(`taxResult-${loadFor}`);
+      if (payload) setResult(JSON.parse(payload));
+
+      const storedSalary = sessionStorage.getItem("salaryResult");
+      if (storedSalary) setSalary(JSON.parse(storedSalary));
+
+      setCountry(loadFor === "default" ? null : loadFor);
       setLoading(false);
     }
   }, []);
 
+  const onSelectCountry = (value: string) => {
+    const payload = sessionStorage.getItem(value === "default" ? "taxResult" : `taxResult-${value}`);
+    if (payload) {
+      setCountry(value === "default" ? null : value);
+      setResult(JSON.parse(payload));
+      setMessages([]);
+      setFollowUps([]);
+    }
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, qaLoading]);
+
+  const suggestedFollowUps = useMemo(() => {
+    if (!result?.report) return [];
+    const rec = result.report.options.find((o) => o.id === result.report.recommendedOptionId)?.name ?? "the recommended option";
+    const items = [
+      "Top 3 actions to save more tax",
+      `Why is ${rec} better for me?`,
+      "What happens if my income rises 10%?",
+      salary?.tdsPlan ? "How much TDS per month now?" : null,
+      salary?.input?.npsAnnual !== undefined ? "Should I add more to NPS or 80C?" : null,
+    ].filter(Boolean) as string[];
+    return items.slice(0, 4);
+  }, [result?.report, salary]);
 
   const onAsk = async (q?: string) => {
     const text = (q ?? question).trim();
@@ -89,6 +134,14 @@ export function QAPage() {
       projection: result.projection,
       insights: result.insights,
       aiAnalysis: result.aiAnalysis,
+      salary: salary
+        ? {
+            input: salary.input,
+            breakdown: salary.breakdown,
+            tdsPlan: salary.tdsPlan,
+            derivedTaxInput: salary.derivedTaxInput,
+          }
+        : undefined,
     };
 
     const nextMessages: QaMessage[] = [...messages, { role: "user", content: text }];
@@ -102,7 +155,8 @@ export function QAPage() {
         history: nextMessages,
       });
       setMessages((prev) => [...prev, { role: "assistant", content: r.answer }]);
-      setFollowUps(r.followUps ?? []);
+      const merged = r.followUps?.length ? r.followUps : suggestedFollowUps;
+      setFollowUps(merged);
     } catch (e) {
       setQaError(e instanceof Error ? e.message : "Unknown Q&A error");
     } finally {
@@ -141,7 +195,7 @@ export function QAPage() {
             Run the calculator first, then ask questions about your results.
           </div>
           <div className="mt-8 flex justify-center">
-            <NoiseButton onClick={() => (window.location.href = "/")}>Go to calculator</NoiseButton>
+            <NoiseButton onClick={() => (window.location.href = "/salary")}>Analyze salary</NoiseButton>
           </div>
         </motion.div>
       </AuroraBackground>
@@ -164,6 +218,23 @@ export function QAPage() {
           <p className="text-white/70">
             Ask follow-ups about your result. Answers are grounded in your computed analysis.
           </p>
+          {availableCountries.length > 1 ? (
+            <div className="mt-3 text-xs text-white/60">
+              Context:
+              <select
+                value={country ?? "default"}
+                onChange={(e) => onSelectCountry(e.target.value)}
+                className="ml-2 inline-block h-8 rounded-md border border-white/20 bg-white/5 px-2 text-xs text-white outline-none focus:ring-2 focus:ring-white/20"
+              >
+                <option value="default">Most recent</option>
+                {availableCountries.map((c) => (
+                  <option key={c} value={c}>
+                    {c === "IN" ? "India" : c === "US" ? "United States" : c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           {report?.recommendedOptionId ? (
             <div className="mt-3 text-xs text-white/60">
               Context loaded • Recommended:{" "}

@@ -9,13 +9,29 @@ export const CardSpotlight = ({
   children,
   radius = 350,
   color = "#262626",
+  enableEffect = true,
   className,
   ...props
 }: {
   radius?: number;
   color?: string;
+  enableEffect?: boolean;
   children: React.ReactNode;
 } & React.HTMLAttributes<HTMLDivElement>) => {
+  if (!enableEffect) {
+    return (
+      <div
+        className={cn(
+          "p-10 rounded-md relative border border-neutral-800 bg-black dark:border-neutral-800",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   function handleMouseMove({

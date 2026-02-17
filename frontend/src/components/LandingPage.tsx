@@ -64,8 +64,8 @@ export function LandingPage() {
               </p>
 
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-                <NoiseButton href="/calculator" className="w-full sm:w-auto">
-                  Start Analysis
+                <NoiseButton href="/salary" className="w-full sm:w-auto">
+                  Analyze Salary Slip
                 </NoiseButton>
                 <Link
                   href="/insights"

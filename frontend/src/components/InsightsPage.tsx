@@ -5,7 +5,7 @@ import type { AnalyzeResponse } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Cpu, AlertCircle, TrendingUp, Zap } from "lucide-react";
+import { Cpu, AlertCircle, TrendingUp, Zap, Compass, Clock } from "lucide-react";
 
 function Stat(props: { label: string; value: string; icon?: React.ReactNode }) {
   return (
@@ -46,6 +46,22 @@ export function InsightsPage() {
       }) ?? []
     );
   }, [insights]);
+
+  const nextActions = useMemo(() => {
+    if (!insights) return [];
+    const actions = insights.actionPlan ?? [];
+    return actions
+      .slice(0, 5)
+      .map((a, idx) => ({
+        id: `${a.label}-${idx}`,
+        label: a.label,
+        saved: a.estimatedTaxSaved,
+        savedPer10k: a.estimatedTaxSavedPer10k,
+        notes: a.notes?.[0],
+      }));
+  }, [insights]);
+
+  const flipPoint = insights?.flipPoints?.earnedIncomeFlip;
 
   if (loading) {
     return (
@@ -170,12 +186,12 @@ export function InsightsPage() {
                 </div>
                 {insights.flipPoints.earnedIncomeFlip ? (
                   <div className="p-4 rounded-lg border border-white/10 bg-white/5">
-                      <div className="text-sm font-semibold text-white/70 mb-2">Flip point (approx)</div>
-                      <p className="text-sm text-white/80">
-                        Around {money(insights.flipPoints.earnedIncomeFlip.approxAnnualIncome)} annual income:
-                        {" "}{insights.flipPoints.earnedIncomeFlip.recommendedBelow} → {insights.flipPoints.earnedIncomeFlip.recommendedAbove}
-                      </p>
-                    </div>
+                    <div className="text-sm font-semibold text-white/70 mb-2">Flip point (approx)</div>
+                    <p className="text-sm text-white/80">
+                      Around {money(insights.flipPoints.earnedIncomeFlip.approxAnnualIncome)} annual income:
+                      {" "}{insights.flipPoints.earnedIncomeFlip.recommendedBelow} → {insights.flipPoints.earnedIncomeFlip.recommendedAbove}
+                    </p>
+                  </div>
                 ) : (
                   <div className="p-4 rounded-lg border border-white/10 bg-white/5">
                     <div className="text-sm font-semibold text-white/70 mb-2">Flip point</div>
@@ -186,6 +202,54 @@ export function InsightsPage() {
             </div>
           </CardSpotlight>
         ) : null}
+
+        <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8 mt-8" radius={420}>
+          <div className="relative z-10">
+            <h3 className="flex items-center gap-2 text-lg font-semibold mb-4">
+              <Compass className="w-5 h-5" />
+              What to Do Next
+            </h3>
+            {nextActions.length ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                {nextActions.map((action) => (
+                  <div key={action.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-white/80">{action.label}</div>
+                        {action.notes ? <div className="text-xs text-white/50 mt-1">{action.notes}</div> : null}
+                      </div>
+                      <div className="text-xs bg-cyan-500/20 text-cyan-200 px-2 py-1 rounded">
+                        {money(action.savedPer10k ?? action.saved ?? 0)} /10k
+                      </div>
+                    </div>
+                    <div className="text-xs text-white/50 mt-2">
+                      Est. saved: {money(action.saved ?? 0)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-white/60">Run the calculator to populate a prioritized plan.</div>
+            )}
+
+            <div className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100 flex items-start gap-3">
+              <Clock className="w-4 h-4 mt-0.5" />
+              <div>
+                <div className="font-semibold text-amber-200 mb-1">Flip point watch</div>
+                {flipPoint ? (
+                  <div>
+                    Around {money(flipPoint.approxAnnualIncome)} income, recommendation flips
+                    {flipPoint.recommendedBelow && flipPoint.recommendedAbove
+                      ? ` from ${flipPoint.recommendedBelow} to ${flipPoint.recommendedAbove}`
+                      : ""}. Keep an eye on increments/bonuses.
+                  </div>
+                ) : (
+                  <div>No flip detected in the searched range. Safe to stay with the current regime for now.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardSpotlight>
       </div>
     </div>
   );

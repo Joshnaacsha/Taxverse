@@ -1,4 +1,14 @@
-import type { AnalyzeResponse, AnyTaxInput, CountryCode, QaMessage, QaResponse } from "./types";
+import type {
+  AnalyzeResponse,
+  AnyTaxInput,
+  CountryCode,
+  PayslipParseResponse,
+  QaMessage,
+  QaResponse,
+  SalaryAnalyzeResponse,
+  SalaryComponentsMonthly,
+  SalaryDeductionsMonthly,
+} from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 
@@ -43,4 +53,48 @@ export async function askQuestion(params: {
   }
 
   return (await res.json()) as QaResponse;
+}
+
+export async function parsePayslipPdf(params: {
+  filename: string;
+  mimeType: "application/pdf";
+  dataBase64: string;
+}): Promise<PayslipParseResponse> {
+  const res = await fetch(`${API_BASE}/payslip/parse`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Payslip parse error (${res.status}): ${text || res.statusText}`);
+  }
+
+  return (await res.json()) as PayslipParseResponse;
+}
+
+export async function analyzeSalaryIndia(params: {
+  mode: "manual" | "payslip_pdf";
+  componentsMonthly: SalaryComponentsMonthly;
+  deductionsMonthly: SalaryDeductionsMonthly;
+  otherIncomeAnnual: number;
+  investments80CAnnual: number;
+  npsAnnual: number;
+  homeLoanInterestAnnual: number;
+  tdsPaidYtd: number;
+  monthsRemaining: number;
+}): Promise<SalaryAnalyzeResponse> {
+  const res = await fetch(`${API_BASE}/salary/analyze`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(params),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Salary analyze error (${res.status}): ${text || res.statusText}`);
+  }
+
+  return (await res.json()) as SalaryAnalyzeResponse;
 }
