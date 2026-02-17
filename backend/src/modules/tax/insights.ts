@@ -20,7 +20,7 @@ function computeStability(country: CountryCode, input: AnyCountryInput): { stabi
   if (up.recommendedOptionId !== baseRec || down.recommendedOptionId !== baseRec) {
     return {
       stability: "Low",
-      reason: "Recommendation flips with ~1% income change; decision is highly sensitive.",
+      reason: "A small income change can switch the recommendation, so recheck often.",
     };
   }
 
@@ -28,13 +28,13 @@ function computeStability(country: CountryCode, input: AnyCountryInput): { stabi
   const best = sorted[0]!;
   const second = sorted[1];
   if (!second) {
-    return { stability: "High", reason: "Single-option calculation; stability is not regime-sensitive." };
+    return { stability: "High", reason: "Only one option is available here, so the recommendation is stable." };
   }
 
   const gross = Math.max(base.grossIncome, 1);
   const marginPct = (Math.abs(second.totalTax - best.totalTax) / gross) * 100;
-  if (marginPct < 1.5) return { stability: "Medium", reason: "Small tax margin relative to income; moderate sensitivity." };
-  return { stability: "High", reason: "Clear tax margin; recommendation is likely stable for small changes." };
+  if (marginPct < 1.5) return { stability: "Medium", reason: "The tax gap is small, so your best option may change with salary or deductions." };
+  return { stability: "High", reason: "The tax gap is clear, so this recommendation should remain stable for small changes." };
 }
 
 function buildActionPlan(country: CountryCode, input: AnyCountryInput): ActionItem[] {

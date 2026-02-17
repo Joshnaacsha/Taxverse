@@ -7,7 +7,7 @@ export function buildAeReport(input: AeTaxInput): TaxReport {
   const grossIncome = input.annualIncome + input.otherIncome;
   return {
     country: "AE",
-    taxYear: "UAE Personal Income Tax (simplified)",
+    taxYear: "UAE Personal Income Tax",
     currency: "AED",
     grossIncome,
     options: [

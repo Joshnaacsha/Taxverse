@@ -1,11 +1,5 @@
-import { Navigation } from "@/components/Navigation";
-import { CalculatorPage } from "@/components/CalculatorPage";
+import { redirect } from "next/navigation";
 
 export default function Calculator() {
-  return (
-    <>
-      <Navigation />
-      <CalculatorPage />
-    </>
-  );
+  redirect("/salary");
 }

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calculator, BarChart3, Lightbulb, MessageCircle, Wallet, FileText } from "lucide-react";
+import { Home, BarChart3, Lightbulb, MessageCircle, Wallet, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { uiTheme } from "@/lib/uiTheme";
 
 export function Navigation() {
   const pathname = usePathname();
@@ -11,7 +12,6 @@ export function Navigation() {
   const links = [
     { href: "/", label: "Home", Icon: Home },
     { href: "/salary", label: "Salary", Icon: Wallet },
-    { href: "/calculator", label: "Calculator", Icon: Calculator },
     { href: "/results", label: "Results", Icon: BarChart3 },
     { href: "/insights", label: "Insights", Icon: Lightbulb },
     { href: "/qa", label: "Q&A", Icon: MessageCircle },
@@ -19,9 +19,9 @@ export function Navigation() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-cyan-300/20 bg-[linear-gradient(180deg,rgba(2,6,23,0.92)_0%,rgba(3,15,40,0.86)_100%)] backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="text-2xl font-bold bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent">
@@ -38,11 +38,11 @@ export function Navigation() {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
-                    "hover:bg-white/10",
+                    "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
+                    "hover:bg-cyan-400/10",
                     pathname === link.href
-                      ? "bg-gradient-to-r from-sky-400/20 via-violet-400/20 to-fuchsia-400/20 text-white border border-white/20"
-                      : "text-white/70 hover:text-white"
+                      ? uiTheme.navActive
+                      : "text-white/75 hover:text-white"
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -59,7 +59,7 @@ export function Navigation() {
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden grid grid-cols-7 gap-1 pb-2">
+        <div className="md:hidden grid grid-cols-6 gap-1 pb-2">
           {links.map((link) => {
             const Icon = link.Icon;
             return (
@@ -69,8 +69,8 @@ export function Navigation() {
                 className={cn(
                   "px-2 py-2 rounded text-xs text-center font-medium transition-all flex justify-center",
                   pathname === link.href
-                    ? "bg-gradient-to-r from-sky-400/20 via-violet-400/20 to-fuchsia-400/20 text-white"
-                    : "text-white/60 hover:text-white"
+                    ? uiTheme.navActive
+                    : "text-white/65 hover:text-white"
                 )}
               >
                 <Icon className="w-4 h-4" />

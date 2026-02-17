@@ -42,7 +42,7 @@ function calculateOldRegime(input, financialYear = "FY 2024-25") {
         { label: "Section 80C", used: input.deductions80C, cap: policy.caps.deductions80C, allowed: d80cAllowed },
         { label: "NPS (80CCD(1B))", used: input.nps, cap: policy.caps.nps, allowed: npsAllowed },
         { label: "Home loan interest (24b)", used: input.homeLoanInterest, cap: policy.caps.homeLoanInterest, allowed: homeLoanAllowed },
-        { label: "HRA (simplified)", used: input.hra, allowed: input.hra },
+        { label: "HRA", used: input.hra, allowed: input.hra },
         { label: "Standard deduction", used: standardDeduction, allowed: standardDeduction },
     ];
     const totalDeductions = deductionsBreakdown.reduce((sum, d) => sum + d.allowed, 0);

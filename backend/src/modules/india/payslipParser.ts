@@ -102,11 +102,11 @@ export async function parsePayslipPdf(params: {
   extractedTextPreview?: string;
 }> {
   const rawBytes = Buffer.from(params.dataBase64, "base64");
-  const maxBytes = 3.5 * 1024 * 1024; // keep demo safe
+  const maxBytes = 3.5 * 1024 * 1024;
   if (rawBytes.byteLength > maxBytes) {
     return {
       confidence: "low",
-      notes: ["Payslip file too large for demo parsing. Please use manual entry."],
+      notes: ["Payslip file is too large for parsing. Please use manual entry."],
     };
   }
 

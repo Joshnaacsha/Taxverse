@@ -15,6 +15,7 @@ import { analyzeTax } from "@/lib/api";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { cn } from "@/lib/utils";
 import { DollarSign, Briefcase, TrendingUp, AlertCircle, Zap } from "lucide-react";
+import { uiTheme } from "@/lib/uiTheme";
 
 const defaultIndiaInput: IndiaTaxInput = {
   annualSalary: 60000 * 12,
@@ -74,9 +75,8 @@ function CTAButton(props: {
       onClick={props.onClick}
       disabled={props.disabled}
       className={cn(
-        "inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-slate-950",
-        "bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 shadow-[0_10px_40px_rgba(56,189,248,0.25)] transition",
-        "hover:shadow-[0_12px_50px_rgba(56,189,248,0.35)] disabled:opacity-50 disabled:pointer-events-none",
+        "inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold",
+        uiTheme.cta,
         props.className,
       )}
     >
@@ -96,14 +96,14 @@ function NumberField(props: {
       <div>
         <div className="text-sm font-medium text-white">{props.label}</div>
         {props.description ? (
-          <div className="text-xs text-white/50">{props.description}</div>
+          <div className={`text-xs ${uiTheme.textSubtle}`}>{props.description}</div>
         ) : null}
       </div>
       <input
         type="number"
         value={Number.isFinite(props.value) ? props.value : 0}
         onChange={(e) => props.onChange(Number(e.target.value))}
-        className="h-10 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:ring-2 focus:ring-white/20"
+        className={cn("h-10 rounded-xl px-3 text-sm", uiTheme.field)}
       />
     </label>
   );
@@ -121,16 +121,16 @@ function SelectField(props: {
       <div>
         <div className="text-sm font-medium text-white">{props.label}</div>
         {props.description ? (
-          <div className="text-xs text-white/50">{props.description}</div>
+          <div className={`text-xs ${uiTheme.textSubtle}`}>{props.description}</div>
         ) : null}
       </div>
       <select
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
-        className="h-10 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:ring-2 focus:ring-white/20"
+        className={cn("h-10 rounded-xl px-3 text-sm", uiTheme.field)}
       >
         {props.options.map((o) => (
-          <option key={o.value} value={o.value} className="bg-zinc-950">
+          <option key={o.value} value={o.value} className="bg-slate-900">
             {o.label}
           </option>
         ))}
@@ -187,20 +187,20 @@ export function CalculatorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black pt-8 pb-12">
+    <div className={`${uiTheme.page} pt-8 pb-12`}>
       <div className="mx-auto max-w-4xl px-4">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Tax Calculator</h1>
-          <p className="text-white/60">Multi-country demo (simplified rules) with AI explanation + Q&A</p>
+          <p className={uiTheme.textMuted}>Multi-country calculator with AI explanation + Q&A</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          <CardSpotlight className="lg:col-span-2 rounded-2xl border-white/10 bg-black/40 p-8" radius={420}>
+          <CardSpotlight className={`lg:col-span-2 rounded-2xl p-8 ${uiTheme.panel}`} radius={420}>
             <div className="relative z-10">
               <h2 className="text-xl font-semibold mb-6">Your Financial Profile</h2>
 
               <div className="mb-8">
-                <div className="flex items-center gap-2 text-sm font-semibold text-white/70 uppercase tracking-wide mb-4">
+                <div className={`flex items-center gap-2 text-sm font-semibold ${uiTheme.textMuted} uppercase tracking-wide mb-4`}>
                   <Zap className="w-4 h-4" />
                   Country
                 </div>
@@ -219,12 +219,12 @@ export function CalculatorPage() {
                     { value: "SG", label: "Singapore" },
                     { value: "AE", label: "UAE" },
                   ]}
-                  description="For hackathon/demo use only"
+                  description="Choose your tax country"
                 />
               </div>
 
               <div className="mb-8">
-                <div className="flex items-center gap-2 text-sm font-semibold text-white/70 uppercase tracking-wide mb-4">
+                <div className={`flex items-center gap-2 text-sm font-semibold ${uiTheme.textMuted} uppercase tracking-wide mb-4`}>
                   <DollarSign className="w-4 h-4" />
                   Income
                 </div>
@@ -245,7 +245,7 @@ export function CalculatorPage() {
               </div>
 
               <div className="mb-8">
-                <div className="flex items-center gap-2 text-sm font-semibold text-white/70 uppercase tracking-wide mb-4">
+                <div className={`flex items-center gap-2 text-sm font-semibold ${uiTheme.textMuted} uppercase tracking-wide mb-4`}>
                   <Briefcase className="w-4 h-4" />
                   Deductions / Settings
                 </div>
@@ -268,10 +268,10 @@ export function CalculatorPage() {
                       label="Home Loan Interest"
                       value={(input as IndiaTaxInput).homeLoanInterest}
                       onChange={(v) => setInput({ ...(input as IndiaTaxInput), homeLoanInterest: v })}
-                      description="Section 24 (cap simplified)"
+                      description="Section 24"
                     />
                     <NumberField
-                      label="HRA (simplified)"
+                      label="HRA"
                       value={(input as IndiaTaxInput).hra}
                       onChange={(v) => setInput({ ...(input as IndiaTaxInput), hra: v })}
                       description="Demo simplification"
@@ -288,7 +288,7 @@ export function CalculatorPage() {
                         { value: "MFJ", label: "Married filing jointly" },
                         { value: "HOH", label: "Head of household" },
                       ]}
-                      description="US federal only (simplified)"
+                      description="US federal"
                     />
                     <NumberField
                       label="Itemized deductions (optional)"
@@ -298,14 +298,14 @@ export function CalculatorPage() {
                     />
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-                    No extra deduction inputs for this country in the demo calculator.
+                  <div className={`rounded-lg p-4 text-sm ${uiTheme.textMuted} ${uiTheme.panelSoft}`}>
+                    No extra deduction inputs for this country in this calculator.
                   </div>
                 )}
               </div>
 
-              <div className="mb-8 p-4 rounded-lg border border-white/10 bg-white/5">
-                <div className="flex items-center gap-2 text-sm font-semibold text-white/70 uppercase tracking-wide mb-4">
+              <div className={`mb-8 p-4 rounded-lg ${uiTheme.panelSoft}`}>
+                <div className={`flex items-center gap-2 text-sm font-semibold ${uiTheme.textMuted} uppercase tracking-wide mb-4`}>
                   <TrendingUp className="w-4 h-4" />
                   Projections
                 </div>
@@ -341,13 +341,13 @@ export function CalculatorPage() {
                 {loading ? "Analyzing..." : "Analyze Now"}
               </CTAButton>
 
-              <div className="mt-4 text-xs text-white/50">
+              <div className={`mt-4 text-xs ${uiTheme.textSubtle}`}>
                 AI analysis is enabled. If it returns "AI disabled", set GOOGLE_API_KEY in backend.
               </div>
             </div>
           </CardSpotlight>
 
-          <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8" radius={420}>
+          <CardSpotlight className={`rounded-2xl p-8 ${uiTheme.panel}`} radius={420}>
             <div className="relative z-10">
               <h3 className="flex items-center gap-2 text-lg font-semibold mb-6">
                 <AlertCircle className="w-5 h-5" />
@@ -355,30 +355,30 @@ export function CalculatorPage() {
               </h3>
 
               <div className="space-y-4">
-                <div className="p-4 rounded-lg border border-white/10 bg-white/5">
+                <div className={`p-4 rounded-lg ${uiTheme.panelSoft}`}>
                   <div className="text-sm font-medium mb-1">Keep it simple</div>
-                  <p className="text-xs text-white/60">This is a hackathon estimator, not official tax advice.</p>
+                  <p className={`text-xs ${uiTheme.textMuted}`}>Use this as planning guidance and verify with official rules.</p>
                 </div>
 
-                <div className="p-4 rounded-lg border border-white/10 bg-white/5">
+                <div className={`p-4 rounded-lg ${uiTheme.panelSoft}`}>
                   <div className="text-sm font-medium mb-1">Compare options</div>
-                  <p className="text-xs text-white/60">Some countries show multiple options (e.g., India regimes, US standard vs itemized).</p>
+                  <p className={`text-xs ${uiTheme.textMuted}`}>Some countries show multiple options (e.g., India regimes, US standard vs itemized).</p>
                 </div>
 
-                <div className="p-4 rounded-lg border border-white/10 bg-white/5">
+                <div className={`p-4 rounded-lg ${uiTheme.panelSoft}`}>
                   <div className="text-sm font-medium mb-1">Ask questions</div>
-                  <p className="text-xs text-white/60">Use Q&A after results to understand the recommendation.</p>
+                  <p className={`text-xs ${uiTheme.textMuted}`}>Use Q&A after results to understand the recommendation.</p>
                 </div>
 
-                <div className="p-4 rounded-lg border border-white/10 bg-white/5">
+                <div className={`p-4 rounded-lg ${uiTheme.panelSoft}`}>
                   <div className="text-sm font-medium mb-1">Audit trail</div>
-                  <p className="text-xs text-white/60">Check the breakdown tabs for slabs/deductions used.</p>
+                  <p className={`text-xs ${uiTheme.textMuted}`}>Check the breakdown tabs for slabs/deductions used.</p>
                 </div>
               </div>
 
-              <div className="mt-6 p-4 rounded-lg border border-white/10 bg-sky-500/10">
-                <p className="text-xs text-white/70">
-                  <strong>Note:</strong> Country rules are simplified for demo; verify with official sources.
+              <div className="mt-6 p-4 rounded-lg border border-sky-300/30 bg-sky-500/12">
+                <p className={`text-xs ${uiTheme.textMuted}`}>
+                  <strong>Note:</strong> Verify with official sources before filing.
                 </p>
               </div>
             </div>

@@ -37,7 +37,7 @@ export function buildTaxReport<C extends CountryCode>(
           extrasAmount: oldR.cessAmount,
           totalTax: oldR.totalTax,
           effectiveRatePct: oldR.effectiveRatePct,
-          notes: ["Includes 4% cess", "HRA is simplified for demo"],
+          notes: ["Includes 4% cess", "HRA calculated from the value provided in input"],
         },
         {
           id: "new",

@@ -37,7 +37,7 @@ export function buildUkReport(input: UkTaxInput): TaxReport {
 
   return {
     country: "UK",
-    taxYear: "UK Income Tax (2024/25, simplified)",
+    taxYear: "UK Income Tax (2024/25)",
     currency: "GBP",
     grossIncome,
     options: [

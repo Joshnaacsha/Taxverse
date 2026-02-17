@@ -34,7 +34,7 @@ export function buildSgReport(input: SgTaxInput): TaxReport {
 
   return {
     country: "SG",
-    taxYear: "Singapore resident income tax (simplified)",
+    taxYear: "Singapore resident income tax",
     currency: "SGD",
     grossIncome,
     options: [

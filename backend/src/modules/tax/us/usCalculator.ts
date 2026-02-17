@@ -108,7 +108,7 @@ export function buildUsReport(input: UsaTaxInput): TaxReport {
 
   return {
     country: "US",
-    taxYear: "US Federal (Tax Year 2024, simplified)",
+    taxYear: "US Federal (Tax Year 2024)",
     currency: "USD",
     grossIncome,
     options,

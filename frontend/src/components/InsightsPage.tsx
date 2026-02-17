@@ -4,13 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import type { AnalyzeResponse } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
+import { Spotlight } from "@/components/ui/spotlight";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Cpu, AlertCircle, TrendingUp, Zap, Compass, Clock } from "lucide-react";
+import { Cpu, AlertCircle, TrendingUp, Zap, Compass, Clock, Sparkles, BadgeCheck } from "lucide-react";
+import { uiTheme } from "@/lib/uiTheme";
 
 function Stat(props: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-      <div className="flex items-center gap-2 text-xs text-white/60 mb-2">
+    <div className={`rounded-xl p-4 ${uiTheme.panelSoft}`}>
+      <div className={`flex items-center gap-2 text-xs ${uiTheme.textMuted} mb-2`}>
         {props.icon}
         {props.label}
       </div>
@@ -62,22 +64,38 @@ export function InsightsPage() {
   }, [insights]);
 
   const flipPoint = insights?.flipPoints?.earnedIncomeFlip;
+  const reportCurrency = report?.currency ?? "INR";
+  const money = (value: number) => formatMoney(value, reportCurrency);
+  const futureTips = useMemo(() => {
+    if (!report) return [];
+    const tips: string[] = [];
+    if (nextActions[0]?.label) {
+      tips.push(`Start with ${nextActions[0].label}. It gives the strongest tax impact in your current profile.`);
+    }
+    if (flipPoint) {
+      tips.push(`If your annual income goes near ${money(flipPoint.approxAnnualIncome)}, recheck your regime because your best option may change.`);
+    }
+    if (report.savings > 0) {
+      tips.push(`You are already saving ${money(report.savings)} with the current recommendation. Keep your documents ready so you can claim the full benefit.`);
+    }
+    return tips.slice(0, 3);
+  }, [flipPoint, nextActions, report, reportCurrency]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black flex items-center justify-center">
-        <div className="text-white/60">Loading insights...</div>
+      <div className={`${uiTheme.page} flex items-center justify-center`}>
+        <div className={uiTheme.textMuted}>Loading insights...</div>
       </div>
     );
   }
 
   if (!result || !report) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black pt-8 pb-12">
+      <div className={`${uiTheme.page} pt-8 pb-12`}>
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-4">No Data Available</h1>
-            <p className="text-white/60">Run the calculator to unlock detailed insights.</p>
+            <p className="text-white/72">Run the calculator to unlock detailed insights.</p>
           </div>
         </div>
       </div>
@@ -85,19 +103,21 @@ export function InsightsPage() {
   }
 
   const recommended = report.options.find((o) => o.id === report.recommendedOptionId)?.name ?? report.recommendedOptionId;
-  const money = (value: number) => formatMoney(value, report.currency);
   const isIndia = report.country === "IN";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black pt-8 pb-12">
+    <div className={`${uiTheme.page} relative overflow-hidden pt-8 pb-12`}>
+      <Spotlight className="-top-52 left-0" fill="rgba(56,189,248,0.32)" />
       <div className="mx-auto max-w-6xl px-4">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Detailed Insights</h1>
-          <p className="text-white/60">{report.taxYear} • {report.country} • Recommended: {recommended}</p>
+          <h1 className="mb-2 bg-gradient-to-r from-cyan-200 via-sky-300 to-blue-400 bg-clip-text text-4xl font-bold text-transparent">
+            Insights You Can Use
+          </h1>
+          <p className="text-white/72">{report.taxYear} | {report.country} | Recommended: {recommended}</p>
         </div>
 
         {result.aiAnalysis ? (
-          <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8 mb-8" radius={420}>
+          <CardSpotlight className={`rounded-2xl p-8 mb-8 ${uiTheme.panel}`} radius={420}>
             <div className="relative z-10">
               <h3 className="flex items-center gap-2 text-xl font-semibold mb-4">
                 <Cpu className="w-5 h-5" />
@@ -105,9 +125,9 @@ export function InsightsPage() {
               </h3>
 
               <div className="space-y-4">
-                <div className="p-4 rounded-lg border border-white/10 bg-white/5">
-                  <div className="text-sm font-semibold text-white/70 mb-2">Summary</div>
-                  <p className="text-sm text-white/80">{result.aiAnalysis.summary}</p>
+                <div className="p-4 rounded-lg border border-white/20 bg-slate-800/70">
+                  <div className="text-sm font-semibold text-white/78 mb-2">Summary</div>
+                  <p className="text-sm text-white/88">{result.aiAnalysis.summary}</p>
                 </div>
 
                 {result.aiAnalysis.futureWarning ? (
@@ -121,12 +141,12 @@ export function InsightsPage() {
                 ) : null}
 
                 {result.aiAnalysis.actionableAdvice?.length ? (
-                  <div className="p-4 rounded-lg border border-white/10 bg-white/5">
-                    <div className="text-sm font-semibold text-white/70 mb-3">Actionable Advice</div>
+                  <div className="p-4 rounded-lg border border-white/20 bg-slate-800/70">
+                    <div className="text-sm font-semibold text-white/78 mb-3">Actionable Advice</div>
                     <ul className="space-y-2">
                       {result.aiAnalysis.actionableAdvice.map((advice, idx) => (
-                        <li key={idx} className="flex gap-2 text-sm text-white/70">
-                          <span className="text-green-400 mt-0.5">→</span>
+                        <li key={idx} className="flex gap-2 text-sm text-white/78">
+                          <span className="text-green-400 mt-0.5">-</span>
                           <span>{advice}</span>
                         </li>
                       ))}
@@ -141,18 +161,18 @@ export function InsightsPage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Stat label="Gross Income" value={money(report.grossIncome)} icon={<TrendingUp className="w-4 h-4 text-cyan-400" />} />
           <Stat label="Savings" value={money(report.savings)} icon={<TrendingUp className="w-4 h-4 text-green-400" />} />
-          <Stat label="Options" value={`${report.options.length}`} icon={<Zap className="w-4 h-4 text-violet-400" />} />
-          <Stat label="Stability" value={insights?.stability ?? "—"} icon={<AlertCircle className="w-4 h-4 text-amber-400" />} />
+          <Stat label="Options" value={`${report.options.length}`} icon={<Zap className="w-4 h-4 text-sky-400" />} />
+          <Stat label="Stability" value={insights?.stability ?? "-"} icon={<AlertCircle className="w-4 h-4 text-amber-400" />} />
         </div>
 
         {scenarioData.length ? (
-          <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8 mb-8" radius={420}>
+          <CardSpotlight className={`rounded-2xl p-8 mb-8 ${uiTheme.panel}`} radius={420}>
             <div className="relative z-10">
               <h3 className="flex items-center gap-2 text-lg font-semibold mb-4">
                 <TrendingUp className="w-5 h-5" />
-                Scenario Sensitivity
+                If Your Situation Changes
               </h3>
-              <p className="text-sm text-white/60 mb-6">How savings and taxes change under what-if scenarios.</p>
+              <p className="text-sm text-white/72 mb-6">Simple what-if view of how your tax may change.</p>
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={scenarioData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -172,31 +192,31 @@ export function InsightsPage() {
         ) : null}
 
         {insights ? (
-          <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8" radius={420}>
+          <CardSpotlight className={`rounded-2xl p-8 ${uiTheme.panel}`} radius={420}>
             <div className="relative z-10">
               <h3 className="flex items-center gap-2 text-lg font-semibold mb-4">
                 <AlertCircle className="w-5 h-5" />
-                Decision Stability
+                Is This Recommendation Stable?
               </h3>
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="p-4 rounded-lg border border-white/10 bg-white/5">
+                <div className="p-4 rounded-lg border border-white/20 bg-slate-800/70">
                   <div className="inline-block px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-sm font-semibold mb-2">
                     {insights.stability}
                   </div>
-                  <p className="text-sm text-white/80 mt-2">{insights.stabilityReason}</p>
+                  <p className="text-sm text-white/88 mt-2">{insights.stabilityReason}</p>
                 </div>
                 {insights.flipPoints.earnedIncomeFlip ? (
-                  <div className="p-4 rounded-lg border border-white/10 bg-white/5">
-                    <div className="text-sm font-semibold text-white/70 mb-2">Flip point (approx)</div>
-                    <p className="text-sm text-white/80">
+                  <div className="p-4 rounded-lg border border-white/20 bg-slate-800/70">
+                    <div className="text-sm font-semibold text-white/78 mb-2">Flip point (approx)</div>
+                    <p className="text-sm text-white/88">
                       Around {money(insights.flipPoints.earnedIncomeFlip.approxAnnualIncome)} annual income:
-                      {" "}{insights.flipPoints.earnedIncomeFlip.recommendedBelow} → {insights.flipPoints.earnedIncomeFlip.recommendedAbove}
+                      {" "}{insights.flipPoints.earnedIncomeFlip.recommendedBelow} to {insights.flipPoints.earnedIncomeFlip.recommendedAbove}
                     </p>
                   </div>
                 ) : (
-                  <div className="p-4 rounded-lg border border-white/10 bg-white/5">
-                    <div className="text-sm font-semibold text-white/70 mb-2">Flip point</div>
-                    <p className="text-sm text-white/70">No flip detected in the searched range.</p>
+                  <div className="p-4 rounded-lg border border-white/20 bg-slate-800/70">
+                    <div className="text-sm font-semibold text-white/78 mb-2">Flip point</div>
+                    <p className="text-sm text-white/78">No flip detected in the searched range.</p>
                   </div>
                 )}
               </div>
@@ -204,33 +224,33 @@ export function InsightsPage() {
           </CardSpotlight>
         ) : null}
 
-        <CardSpotlight className="rounded-2xl border-white/10 bg-black/40 p-8 mt-8" radius={420}>
+        <CardSpotlight className={`rounded-2xl p-8 mt-8 ${uiTheme.panel}`} radius={420}>
           <div className="relative z-10">
             <h3 className="flex items-center gap-2 text-lg font-semibold mb-4">
               <Compass className="w-5 h-5" />
-              What to Do Next
+              What You Can Do Next
             </h3>
             {nextActions.length ? (
               <div className="grid md:grid-cols-2 gap-4">
                 {nextActions.map((action) => (
-                  <div key={action.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div key={action.id} className="rounded-xl border border-white/20 bg-slate-800/70 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-sm font-semibold text-white/80">{action.label}</div>
-                        {action.notes ? <div className="text-xs text-white/50 mt-1">{action.notes}</div> : null}
+                        <div className="text-sm font-semibold text-white/88">{action.label}</div>
+                        {action.notes ? <div className="text-xs text-white/62 mt-1">{action.notes}</div> : null}
                       </div>
                       <div className="text-xs bg-cyan-500/20 text-cyan-200 px-2 py-1 rounded">
                         {money(action.savedPer10k ?? action.saved ?? 0)} /10k
                       </div>
                     </div>
-                    <div className="text-xs text-white/50 mt-2">
+                    <div className="text-xs text-white/62 mt-2">
                       Est. saved: {money(action.saved ?? 0)}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-sm text-white/60">Run the calculator to populate a prioritized plan.</div>
+              <div className="text-sm text-white/72">Run the calculator to populate a prioritized plan.</div>
             )}
 
             <div className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100 flex items-start gap-3">
@@ -250,13 +270,30 @@ export function InsightsPage() {
               </div>
             </div>
 
+            {futureTips.length ? (
+              <div className="mt-6 rounded-xl border border-sky-300/25 bg-sky-500/10 p-4 text-sm text-sky-100">
+                <div className="mb-3 flex items-center gap-2 font-semibold text-sky-200">
+                  <Sparkles className="h-4 w-4" />
+                  Future Savings Plan
+                </div>
+                <ul className="space-y-3">
+                  {futureTips.map((tip) => (
+                    <li key={tip} className="flex items-start gap-2">
+                      <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" />
+                      <span>{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             {isIndia ? (
-              <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/80 space-y-2">
-                <div className="font-semibold text-white">India quick saves (plain English)</div>
-                <div>80C: up to ₹1.5L across EPF/PPF/ELSS/term-life tuition etc.; collect proofs for payroll/ITR.</div>
-                <div>NPS 80CCD(1B): extra ₹50k over 80C; Tier I contributions only; long lock-in but big tax cut.</div>
-                <div>Home loan 24B: up to ₹2L interest; get lender interest certificate; co-borrowers can split.</div>
-                <div>HRA: keep rent receipts + landlord PAN (&gt;₹1L/year); claim actual rent minus 10% basic and city caps.</div>
+              <div className="mt-6 rounded-xl border border-white/20 bg-slate-800/70 p-4 text-sm text-white/88 space-y-2">
+                <div className="font-semibold text-white">India quick saves</div>
+                <div>80C: up to Rs 1.5L across EPF, PPF, ELSS, term-life and tuition; keep proofs ready.</div>
+                <div>NPS 80CCD(1B): extra Rs 50k over 80C; useful if you can lock this amount for long term.</div>
+                <div>Home loan 24B: up to Rs 2L interest in many cases; keep lender interest certificate.</div>
+                <div>HRA: keep rent receipts and landlord PAN (above Rs 1L yearly); claim as per rules.</div>
               </div>
             ) : null}
           </div>
@@ -265,3 +302,6 @@ export function InsightsPage() {
     </div>
   );
 }
+
+
+

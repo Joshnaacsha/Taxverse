@@ -65,8 +65,9 @@ ${JSON.stringify(
 TASK:
 1. Explain why the recommended regime is better
 2. Decide stability: High / Medium / Low
-3. Warn about future risks
-4. Give actionable advice
+3. Warn about future risks in plain language
+4. Give actionable advice in plain language
+5. Include future-focused saving tips (what to do next year)
 
 Return ONLY valid JSON in this format:
 {
