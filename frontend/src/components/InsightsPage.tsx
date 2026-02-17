@@ -86,6 +86,7 @@ export function InsightsPage() {
 
   const recommended = report.options.find((o) => o.id === report.recommendedOptionId)?.name ?? report.recommendedOptionId;
   const money = (value: number) => formatMoney(value, report.currency);
+  const isIndia = report.country === "IN";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-black pt-8 pb-12">
@@ -248,6 +249,16 @@ export function InsightsPage() {
                 )}
               </div>
             </div>
+
+            {isIndia ? (
+              <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/80 space-y-2">
+                <div className="font-semibold text-white">India quick saves (plain English)</div>
+                <div>80C: up to ₹1.5L across EPF/PPF/ELSS/term-life tuition etc.; collect proofs for payroll/ITR.</div>
+                <div>NPS 80CCD(1B): extra ₹50k over 80C; Tier I contributions only; long lock-in but big tax cut.</div>
+                <div>Home loan 24B: up to ₹2L interest; get lender interest certificate; co-borrowers can split.</div>
+                <div>HRA: keep rent receipts + landlord PAN (&gt;₹1L/year); claim actual rent minus 10% basic and city caps.</div>
+              </div>
+            ) : null}
           </div>
         </CardSpotlight>
       </div>

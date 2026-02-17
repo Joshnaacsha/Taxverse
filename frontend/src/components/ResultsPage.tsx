@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { AnalyzeResponse, SalaryResult } from "@/lib/types";
 import { formatMoney, formatPct } from "@/lib/format";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
-import { NoiseBackground } from "@/components/ui/noise-background";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { cn } from "@/lib/utils";
 import { TrendingUp, BarChart3, MessageCircle, DollarSign, FileText, Share2, Download, CalendarClock, AlertTriangle } from "lucide-react";
@@ -21,7 +20,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-function NoiseButton(props: {
+function CTAButton(props: {
   children: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
@@ -29,33 +28,21 @@ function NoiseButton(props: {
   className?: string;
 }) {
   const sizeClass = props.size === "sm" ? "h-9 px-3 text-xs" : "h-11 px-4 text-sm";
-
   return (
-    <NoiseBackground
-      containerClassName={cn(
-        "inline-block rounded-xl p-1",
-        props.disabled && "opacity-50 pointer-events-none",
+    <button
+      type="button"
+      onClick={props.onClick}
+      disabled={props.disabled}
+      className={cn(
+        "inline-flex items-center justify-center rounded-xl text-slate-950",
+        "bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 shadow-[0_10px_40px_rgba(56,189,248,0.25)] transition",
+        "hover:shadow-[0_12px_50px_rgba(56,189,248,0.35)] disabled:opacity-50 disabled:pointer-events-none",
+        sizeClass,
         props.className,
       )}
-      className="p-0"
-      gradientColors={["rgb(56, 189, 248)", "rgb(168, 85, 247)", "rgb(236, 72, 153)"]}
-      noiseIntensity={0.22}
-      speed={0.13}
-      backdropBlur
     >
-      <button
-        type="button"
-        onClick={props.onClick}
-        disabled={props.disabled}
-        className={cn(
-          "w-full rounded-[0.7rem] bg-black/80 font-semibold text-white ring-1 ring-white/10 hover:bg-black/60",
-          "transition-colors",
-          sizeClass,
-        )}
-      >
-        {props.children}
-      </button>
-    </NoiseBackground>
+      {props.children}
+    </button>
   );
 }
 
@@ -107,7 +94,7 @@ export function ResultsPage() {
     if (!result?.report) return "";
     const rec = result.report.options.find((o) => o.id === result.report.recommendedOptionId);
     const saved = formatMoney(result.report.savings, result.report.currency);
-    return `RegimeIQ: Recommended "${rec?.name ?? "option"}" for ${result.report.country} ${result.report.taxYear}. Saves ${saved}.`;
+    return `Taxverse: Recommended "${rec?.name ?? "option"}" for ${result.report.country} ${result.report.taxYear}. Saves ${saved}.`;
   }, [result?.report]);
 
   const onCopyShare = async () => {
@@ -178,7 +165,7 @@ export function ResultsPage() {
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-4">No Results Found</h1>
             <p className="text-white/60 mb-8">Please run the calculator first to see results.</p>
-            <NoiseButton onClick={() => (window.location.href = "/salary")}>Analyze salary</NoiseButton>
+            <CTAButton onClick={() => (window.location.href = "/salary")}>Analyze salary</CTAButton>
           </div>
         </div>
       </div>
@@ -274,16 +261,16 @@ export function ResultsPage() {
             {report.taxYear} • {report.country} • Recommended: {recommendedOption?.name ?? report.recommendedOptionId}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <NoiseButton onClick={onExport} size="sm">
+            <CTAButton onClick={onExport} size="sm">
               <span className="inline-flex items-center gap-2 text-xs md:text-sm">
                 <Download className="w-4 h-4" /> Download / Print
               </span>
-            </NoiseButton>
-            <NoiseButton onClick={onCopyShare} size="sm">
+            </CTAButton>
+            <CTAButton onClick={onCopyShare} size="sm">
               <span className="inline-flex items-center gap-2 text-xs md:text-sm">
                 <Share2 className="w-4 h-4" /> {copied ? "Copied!" : "Copy summary"}
               </span>
-            </NoiseButton>
+            </CTAButton>
           </div>
           {report.notes?.length ? (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -613,14 +600,14 @@ export function ResultsPage() {
         ) : null}
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <NoiseButton onClick={() => (window.location.href = "/qa")} className="w-full sm:w-auto">
+          <CTAButton onClick={() => (window.location.href = "/qa")} className="w-full sm:w-auto">
             <span className="inline-flex items-center gap-2">
               <MessageCircle className="w-4 h-4" /> Ask Questions
             </span>
-          </NoiseButton>
-          <NoiseButton onClick={() => (window.location.href = "/insights")} className="w-full sm:w-auto">
+          </CTAButton>
+          <CTAButton onClick={() => (window.location.href = "/insights")} className="w-full sm:w-auto">
             View Insights
-          </NoiseButton>
+          </CTAButton>
         </div>
       </div>
     </div>

@@ -4,13 +4,12 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import type { AnalyzeResponse, QaMessage, SalaryResult } from "@/lib/types";
 import { askQuestion } from "@/lib/api";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
-import { NoiseBackground } from "@/components/ui/noise-background";
 import { cn } from "@/lib/utils";
 import { MessageCircle, AlertCircle, Lightbulb, HelpCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 
-function NoiseButton(props: {
+function CTAButton(props: {
   children: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
@@ -18,33 +17,21 @@ function NoiseButton(props: {
   className?: string;
 }) {
   const sizeClass = props.size === "sm" ? "h-9 px-3 text-xs" : "h-11 px-4 text-sm";
-
   return (
-    <NoiseBackground
-      containerClassName={cn(
-        "inline-block rounded-xl p-1",
-        props.disabled && "opacity-50 pointer-events-none",
+    <button
+      type="button"
+      onClick={props.onClick}
+      disabled={props.disabled}
+      className={cn(
+        "inline-flex items-center justify-center rounded-xl text-slate-950",
+        "bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 shadow-[0_10px_40px_rgba(56,189,248,0.25)] transition",
+        "hover:shadow-[0_12px_50px_rgba(56,189,248,0.35)] disabled:opacity-50 disabled:pointer-events-none",
+        sizeClass,
         props.className
       )}
-      className="p-0"
-      gradientColors={["rgb(56, 189, 248)", "rgb(168, 85, 247)", "rgb(236, 72, 153)"]}
-      noiseIntensity={0.22}
-      speed={0.13}
-      backdropBlur
     >
-      <button
-        type="button"
-        onClick={props.onClick}
-        disabled={props.disabled}
-        className={cn(
-          "w-full rounded-[0.7rem] bg-black/80 font-semibold text-white ring-1 ring-white/10 hover:bg-black/60",
-          "transition-colors",
-          sizeClass
-        )}
-      >
-        {props.children}
-      </button>
-    </NoiseBackground>
+      {props.children}
+    </button>
   );
 }
 
@@ -195,7 +182,7 @@ export function QAPage() {
             Run the calculator first, then ask questions about your results.
           </div>
           <div className="mt-8 flex justify-center">
-            <NoiseButton onClick={() => (window.location.href = "/salary")}>Analyze salary</NoiseButton>
+                <CTAButton onClick={() => (window.location.href = "/salary")}>Analyze salary</CTAButton>
           </div>
         </motion.div>
       </AuroraBackground>
@@ -359,9 +346,9 @@ export function QAPage() {
                   className="flex-1 h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-white/20"
                   disabled={qaLoading}
                 />
-                <NoiseButton onClick={() => onAsk()} disabled={qaLoading || !question.trim()}>
+                <CTAButton onClick={() => onAsk()} disabled={qaLoading || !question.trim()}>
                   {qaLoading ? "..." : "Send"}
-                </NoiseButton>
+                </CTAButton>
               </div>
               <div className="text-xs text-white/40">
                 Press Enter or click Send • AI answers are grounded in your analysis

@@ -4,42 +4,27 @@ import Link from "next/link";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Globe } from "@/components/magicui/globe";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { NoiseBackground } from "@/components/ui/noise-background";
-import { cn } from "@/lib/utils";
 import { Zap, TrendingUp, Cpu, Target, BarChart3 } from "lucide-react";
 
-function NoiseButton(props: {
+function CTAButton(props: {
   children: React.ReactNode;
   href?: string;
   onClick?: () => void;
   className?: string;
 }) {
+  const base =
+    "inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-slate-950 bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 shadow-[0_10px_40px_rgba(56,189,248,0.25)] hover:shadow-[0_12px_50px_rgba(56,189,248,0.35)] transition";
+  if (props.href) {
+    return (
+      <Link href={props.href} className={`${base} ${props.className ?? ""}`}>
+        {props.children}
+      </Link>
+    );
+  }
   return (
-    <NoiseBackground
-      containerClassName={cn("inline-block rounded-xl p-1", props.className)}
-      className="p-0"
-      gradientColors={["rgb(56, 189, 248)", "rgb(168, 85, 247)", "rgb(236, 72, 153)"]}
-      noiseIntensity={0.22}
-      speed={0.13}
-      backdropBlur
-    >
-      {props.href ? (
-        <Link
-          href={props.href}
-          className="inline-block w-full rounded-[0.7rem] bg-black/80 font-semibold text-white ring-1 ring-white/10 hover:bg-black/60 transition-colors px-6 py-3 text-sm"
-        >
-          {props.children}
-        </Link>
-      ) : (
-        <button
-          type="button"
-          onClick={props.onClick}
-          className="w-full rounded-[0.7rem] bg-black/80 font-semibold text-white ring-1 ring-white/10 hover:bg-black/60 transition-colors px-6 py-3 text-sm"
-        >
-          {props.children}
-        </button>
-      )}
-    </NoiseBackground>
+    <button type="button" onClick={props.onClick} className={`${base} ${props.className ?? ""}`}>
+      {props.children}
+    </button>
   );
 }
 
@@ -54,19 +39,19 @@ export function LandingPage() {
                 ✨ AI-Powered Tax Optimizer
               </div>
               <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4">
-                RegimeIQ
+                Taxverse
               </h1>
               <p className="text-lg text-white/80 mb-2 bg-gradient-to-r from-sky-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent font-semibold">
-                Choose Your Tax Regime Wisely
+                Choose Your Tax Path Wisely
               </p>
               <p className="text-base text-white/60 mb-8 max-w-xl">
-                Get AI-powered tax regime recommendations tailored to your financial situation. Compare regimes, project outcomes, and optimize your tax liability with confidence.
+                Get AI-powered tax recommendations tailored to your financial situation. Compare regimes, project outcomes, and optimize your tax liability with confidence.
               </p>
 
             <div className="flex flex-col sm:flex-row gap-4 items-start">
-                <NoiseButton href="/salary" className="w-full sm:w-auto">
+                <CTAButton href="/salary" className="w-full sm:w-auto">
                   Analyze Salary Slip
-                </NoiseButton>
+                </CTAButton>
                 <Link
                   href="/insights"
                   className="px-6 py-3 rounded-xl border border-white/20 text-white/80 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
@@ -109,7 +94,7 @@ export function LandingPage() {
 
       {/* Features Section */}
       <div className="mx-auto max-w-6xl px-4 py-20">
-        <h2 className="text-3xl font-bold text-center mb-12">Why RegimeIQ?</h2>
+        <h2 className="text-3xl font-bold text-center mb-12">Why Taxverse?</h2>
         <div className="grid md:grid-cols-2 gap-8">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
             <div className="mb-4 flex items-center gap-3">

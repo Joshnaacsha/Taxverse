@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RegimeIQ - AI Tax Optimizer",
-  description: "AI-assisted India tax regime decision engine. Get personalized tax recommendations, projections, and optimization strategies.",
+  title: "Taxverse - AI Tax Optimizer",
+  description: "AI-assisted tax regime decision engine. Get personalized recommendations, projections, and optimization strategies.",
   viewport: "width=device-width, initial-scale=1",
 };
 

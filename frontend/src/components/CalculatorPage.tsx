@@ -13,7 +13,6 @@ import type {
 } from "@/lib/types";
 import { analyzeTax } from "@/lib/api";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
-import { NoiseBackground } from "@/components/ui/noise-background";
 import { cn } from "@/lib/utils";
 import { DollarSign, Briefcase, TrendingUp, AlertCircle, Zap } from "lucide-react";
 
@@ -63,34 +62,26 @@ function defaultInputForCountry(country: CountryCode): AnyTaxInput {
   }
 }
 
-function NoiseButton(props: {
+function CTAButton(props: {
   children: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
   className?: string;
 }) {
   return (
-    <NoiseBackground
-      containerClassName={cn(
-        "inline-block rounded-xl p-1",
-        props.disabled && "opacity-50 pointer-events-none",
+    <button
+      type="button"
+      onClick={props.onClick}
+      disabled={props.disabled}
+      className={cn(
+        "inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-slate-950",
+        "bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 shadow-[0_10px_40px_rgba(56,189,248,0.25)] transition",
+        "hover:shadow-[0_12px_50px_rgba(56,189,248,0.35)] disabled:opacity-50 disabled:pointer-events-none",
         props.className,
       )}
-      className="p-0"
-      gradientColors={["rgb(56, 189, 248)", "rgb(168, 85, 247)", "rgb(236, 72, 153)"]}
-      noiseIntensity={0.22}
-      speed={0.13}
-      backdropBlur
     >
-      <button
-        type="button"
-        onClick={props.onClick}
-        disabled={props.disabled}
-        className="w-full rounded-[0.7rem] bg-black/80 font-semibold text-white ring-1 ring-white/10 hover:bg-black/60 transition-colors px-6 py-3"
-      >
-        {props.children}
-      </button>
-    </NoiseBackground>
+      {props.children}
+    </button>
   );
 }
 
@@ -346,9 +337,9 @@ export function CalculatorPage() {
                 </div>
               ) : null}
 
-              <NoiseButton onClick={onAnalyze} disabled={loading}>
+              <CTAButton onClick={onAnalyze} disabled={loading}>
                 {loading ? "Analyzing..." : "Analyze Now"}
-              </NoiseButton>
+              </CTAButton>
 
               <div className="mt-4 text-xs text-white/50">
                 AI analysis is enabled. If it returns "AI disabled", set GOOGLE_API_KEY in backend.
