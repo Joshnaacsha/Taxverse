@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { Spotlight } from "@/components/ui/spotlight";
@@ -188,6 +188,8 @@ export function SalaryPage() {
 
   const inHandBeforeTax = useMemo(() => grossMonthly - deductionsMonthly, [grossMonthly, deductionsMonthly]);
 
+  const validCountries: CountryCode[] = ["IN", "US", "UK", "SG", "AE"];
+
   const onCountryChange = (next: CountryCode) => {
     setCountry(next);
     setError(null);
@@ -196,6 +198,16 @@ export function SalaryPage() {
       setOtherIncomeGlobal(0);
     }
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const countryFromQuery = new URLSearchParams(window.location.search).get("country");
+    if (!countryFromQuery) return;
+    const next = countryFromQuery.toUpperCase() as CountryCode;
+    if (!validCountries.includes(next)) return;
+    if (next === country) return;
+    onCountryChange(next);
+  }, [country]);
 
   const fillSample = () => {
     setComponents({

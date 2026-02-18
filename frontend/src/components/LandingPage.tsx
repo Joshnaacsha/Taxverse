@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Globe } from "@/components/magicui/globe";
@@ -29,6 +30,57 @@ function CTAButton(props: {
 }
 
 export function LandingPage() {
+  const countries = [
+    { code: "IN", label: "India", lat: 20.5937, lon: 78.9629 },
+    { code: "US", label: "United States", lat: 38.9072, lon: -77.0369 },
+    { code: "UK", label: "United Kingdom", lat: 51.5072, lon: -0.1276 },
+    { code: "SG", label: "Singapore", lat: 1.3521, lon: 103.8198 },
+    { code: "AE", label: "UAE", lat: 25.2048, lon: 55.2708 },
+  ] as const;
+  const [frame, setFrame] = useState({ phi: 0, theta: 0.3, size: 0 });
+  const lastUpdateRef = useRef(0);
+
+  const onGlobeFrame = useCallback((next: { phi: number; theta: number; size: number }) => {
+    const now = performance.now();
+    if (now - lastUpdateRef.current < 28) return;
+    lastUpdateRef.current = now;
+    setFrame(next);
+  }, []);
+
+  const projectedPins = useMemo(() => {
+    const { phi, theta, size } = frame;
+    if (!size) return [];
+
+    const toRad = (d: number) => (d * Math.PI) / 180;
+
+    return countries.map((country) => {
+      const lat = toRad(country.lat);
+      const lon = toRad(country.lon);
+
+      const lonShifted = lon + phi;
+      const cosLat = Math.cos(lat);
+      const sinLat = Math.sin(lat);
+      const cosLon = Math.cos(lonShifted);
+      const sinLon = Math.sin(lonShifted);
+
+      const x = cosLat * sinLon;
+      const y = sinLat * Math.cos(theta) - cosLat * cosLon * Math.sin(theta);
+      const z = sinLat * Math.sin(theta) + cosLat * cosLon * Math.cos(theta);
+
+      const radius = size * 0.41;
+      const left = size / 2 + x * radius;
+      const top = size / 2 - y * radius;
+      const visible = z > 0;
+
+      return {
+        ...country,
+        visible,
+        left,
+        top,
+      };
+    });
+  }, [countries, frame]);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <AuroraBackground className="h-screen justify-center bg-zinc-950 text-white dark:bg-zinc-950 dark:text-white">
@@ -80,8 +132,26 @@ export function LandingPage() {
 
             <div className="hidden items-center justify-center lg:flex">
               <div className="relative mx-auto aspect-square w-full max-w-[520px]">
-                <Globe className="inset-0 h-full w-full" />
+                <Globe className="inset-0 h-full w-full" onRenderFrame={onGlobeFrame} />
                 <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.22),rgba(2,6,23,0)_62%)]" />
+                {projectedPins.map((country) => (
+                  <Link
+                    key={country.code}
+                    href={`/salary?country=${country.code}`}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 transition-opacity"
+                    style={{
+                      left: `${country.left}px`,
+                      top: `${country.top}px`,
+                      opacity: country.visible ? 1 : 0,
+                      pointerEvents: country.visible ? "auto" : "none",
+                    }}
+                  >
+                    <span className="absolute left-1/2 top-1/2 z-20 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-orange-500/80 bg-orange-900/95 shadow-[0_0_8px_rgba(194,65,12,0.45)]" />
+                    <span className="absolute left-1/2 top-[-16px] z-30 -translate-x-1/2 whitespace-nowrap rounded-full border border-cyan-300/35 bg-slate-900/82 px-2.5 py-1 text-[11px] font-medium text-cyan-100 opacity-100 shadow-lg backdrop-blur-sm">
+                      {country.label}
+                    </span>
+                  </Link>
+                ))}
               </div>
             </div>
           </div>
