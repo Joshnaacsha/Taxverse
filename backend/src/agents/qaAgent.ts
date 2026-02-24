@@ -1,11 +1,15 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { QaResponseSchema } from "../api/schemas";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 function createLlm() {
   if (!process.env.GOOGLE_API_KEY) return null;
   return new ChatGoogleGenerativeAI({
     model: "gemini-2.5-flash",
     temperature: 0.2,
+    apiKey: process.env.GOOGLE_API_KEY,
   });
 }
 
