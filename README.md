@@ -18,6 +18,8 @@ The AI Tax Decision Engine
     - Supported `country`: `IN`, `US`, `UK`, `SG`, `AE` (all simplified estimators)
   - `POST /qa` body:
     - `{ "context": { "...": "use the /analyze response" }, "question": "Why is the recommended regime better?", "history": [{ "role": "user", "content": "..." }] }`
+  - `POST /prefill` body:
+    - `{ "country": "IN", "input": { "annualSalary": 720000, "otherIncome": 0, "deductions80C": 0, "hra": 0, "homeLoanInterest": 0, "nps": 0 }, "personal": { "fullName": "Asha Rao", "pan": "ABCDE1234F", "dateOfBirth": "1995-05-10" } }`
 
 ### Frontend (Next.js)
 - `cd RegimeIQ/frontend`

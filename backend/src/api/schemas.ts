@@ -180,6 +180,29 @@ export const QaResponseSchema = z
   })
   .strict();
 
+export const IndiaPersonalInfoSchema = z
+  .object({
+    fullName: z.string().min(1).max(200).optional(),
+    pan: z.string().min(1).max(20).optional(),
+    dateOfBirth: z.string().min(4).max(20).optional(),
+    email: z.string().email().optional(),
+    phone: z.string().min(6).max(20).optional(),
+    address: z.string().min(5).max(500).optional(),
+  })
+  .strict();
+
+export const PrefillRequestSchema = z.discriminatedUnion("country", [
+  z
+    .object({
+      country: z.literal("IN"),
+      input: IndiaTaxInputSchema,
+      personal: IndiaPersonalInfoSchema.optional(),
+      options: AnalyzeOptionsSchema.optional(),
+    })
+    .strict(),
+]);
+
 export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;
 export type IndiaSalaryAnalyzeRequest = z.infer<typeof IndiaSalaryAnalyzeRequestSchema>;
 export type PayslipParseRequest = z.infer<typeof PayslipParseRequestSchema>;
+export type PrefillRequest = z.infer<typeof PrefillRequestSchema>;

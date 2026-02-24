@@ -223,3 +223,31 @@ export interface SalaryAnalyzeResponse {
   salary: SalaryResult;
   analysis: AnalyzeResponse;
 }
+
+export interface IndiaPersonalInfo {
+  fullName?: string;
+  pan?: string;
+  dateOfBirth?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface PrefillField {
+  key: string;
+  label: string;
+  value: string | number | null;
+}
+
+export interface PrefillSection {
+  name: string;
+  fields: PrefillField[];
+}
+
+export interface IndiaItrPrefill {
+  country: "IN";
+  form: string;
+  financialYear: string;
+  sections: PrefillSection[];
+  notes: string[];
+}

@@ -2,6 +2,9 @@ import type {
   AnalyzeResponse,
   AnyTaxInput,
   CountryCode,
+  IndiaItrPrefill,
+  IndiaPersonalInfo,
+  IndiaTaxInput,
   PayslipParseResponse,
   QaMessage,
   QaResponse,
@@ -97,4 +100,22 @@ export async function analyzeSalaryIndia(params: {
   }
 
   return (await res.json()) as SalaryAnalyzeResponse;
+}
+
+export async function prefillIndia(params: {
+  input: IndiaTaxInput;
+  personal?: IndiaPersonalInfo;
+}): Promise<IndiaItrPrefill> {
+  const res = await fetch(`${API_BASE}/prefill`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ country: "IN", ...params }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Prefill error (${res.status}): ${text || res.statusText}`);
+  }
+
+  return (await res.json()) as IndiaItrPrefill;
 }

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
 import { Home, BarChart3, Lightbulb, MessageCircle, Wallet, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uiTheme } from "@/lib/uiTheme";
 
 export function Navigation() {
   const pathname = usePathname();
+  const shouldReduceMotion = useReducedMotion();
 
   const links = [
     { href: "/", label: "Home", Icon: Home },
@@ -23,31 +25,48 @@ export function Navigation() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="text-2xl font-bold bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent">
-              Taxverse
-            </div>
-          </Link>
+          <motion.div
+            initial={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+          >
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="text-2xl font-bold bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent transition-all duration-300 group-hover:brightness-125">
+                Taxverse
+              </div>
+            </Link>
+          </motion.div>
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-1">
-            {links.map((link) => {
+            {links.map((link, index) => {
               const Icon = link.Icon;
               return (
-                <Link
+                <motion.div
                   key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
-                    "hover:bg-cyan-400/10",
-                    pathname === link.href
-                      ? uiTheme.navActive
-                      : "text-white/75 hover:text-white"
-                  )}
+                  initial={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
+                  animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+                  transition={{ duration: 0.34, delay: 0.04 * index }}
+                  whileHover={shouldReduceMotion ? undefined : { y: -1.5, scale: 1.02 }}
+                  whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
                 >
-                  <Icon className="w-4 h-4" />
-                  {link.label}
-                </Link>
+                  <Link
+                    href={link.href}
+                    className={cn(
+                      "group relative flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
+                      "hover:bg-cyan-400/10",
+                      pathname === link.href
+                        ? uiTheme.navActive
+                        : "text-white/75 hover:text-white"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {link.label}
+                    {pathname !== link.href ? (
+                      <span className="absolute inset-x-3 bottom-1 h-px origin-left scale-x-0 bg-cyan-300/80 transition-transform duration-300 group-hover:scale-x-100" />
+                    ) : null}
+                  </Link>
+                </motion.div>
               );
             })}
           </div>

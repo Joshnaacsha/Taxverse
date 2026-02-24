@@ -5,6 +5,7 @@ import {
   AnalyzeRequestSchema,
   IndiaSalaryAnalyzeRequestSchema,
   PayslipParseRequestSchema,
+  PrefillRequestSchema,
   QaRequestSchema,
 } from "./api/schemas";
 import { taxGraph } from "./graph/graph";
@@ -12,6 +13,7 @@ import { buildExecutiveSummary } from "./modules/india/executiveSummary";
 import { answerWithContext } from "./agents/qaAgent";
 import { parsePayslipPdf } from "./modules/india/payslipParser";
 import { buildIndiaSalaryBreakdown, buildIndiaTdsPlan, deriveIndiaTaxInputFromSalary } from "./modules/india/salaryEngine";
+import { buildIndiaItrPrefill } from "./modules/india/itrPrefill";
 
 const PORT = Number(process.env.PORT ?? 3001);
 const HOST = process.env.HOST ?? "0.0.0.0";
@@ -157,6 +159,20 @@ async function main() {
     }
 
     return reply.send(answer);
+  });
+
+  app.post("/prefill", async (req, reply) => {
+    const parsed = PrefillRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: "Invalid request",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    const { input, personal } = parsed.data;
+    const prefill = buildIndiaItrPrefill(input, personal);
+    return reply.send(prefill);
   });
 
   await app.listen({ port: PORT, host: HOST });
