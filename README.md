@@ -261,21 +261,5 @@ Generate India ITR-style draft payload.
 
 ---
 
-## 10. Security and Privacy Notes
 
-- Never commit real API keys.
-- Keep `.env` and `.env.local` local-only.
-- Do not upload real sensitive payroll/PII in shared demo environments.
 
----
-
-## 11. Suggested Demo Narrative (Hackathon)
-
-- Start on Landing -> Salary (India)
-- Upload payslip or show manual mode with prefilled sample inputs
-- Run analysis -> show recommendation + savings + trend chart
-- Open Insights -> show this-year vs next-year action split
-- Open Q&A -> ask a practical scenario question
-- Open ITR Guide -> generate Draft Pack -> download summary / print PDF
-
-This sequence makes Taxverse clearly more than a chat wrapper: deterministic engine + explainability + workflow outputs.
