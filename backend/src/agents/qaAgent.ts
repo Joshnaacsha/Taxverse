@@ -46,6 +46,89 @@ function normalizeForCompare(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+function detectCountryFromContext(context: unknown): string | null {
+  if (!context || typeof context !== "object") return null;
+  const report = (context as { report?: { country?: unknown } }).report;
+  if (report && typeof report.country === "string") return report.country;
+  return null;
+}
+
+function isFilingProcessQuestion(question: string): boolean {
+  return /\b(file|filing|itr|return|submit|how to file|how do i file)\b/i.test(question);
+}
+
+function looksLikeContextRefusal(answer: string): boolean {
+  return /\b(does not contain|don't have|do not have|missing|not available|cannot find)\b/i.test(answer);
+}
+
+function stripMarkdownArtifacts(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .trim();
+}
+
+function buildGenericFilingGuide(country: string | null): string {
+  if (country === "IN" || country === null) {
+    return [
+      "Yes. Here is a practical India filing path:",
+      "1. Choose the right ITR form (most salaried users use ITR-1; use ITR-2/3 if your income profile is more complex).",
+      "2. Keep documents ready: Form 16, AIS/TIS, interest certificates, deduction proofs, bank details.",
+      "3. Log in to the Income Tax e-Filing portal and prefill your return data.",
+      "4. Verify salary, other income, deductions, and taxes paid (TDS/advance tax).",
+      "5. Pay any balance tax due, then submit the return.",
+      "6. Complete e-verification (Aadhaar OTP, net banking, or other supported method) to finish filing.",
+      "If you want, I can give you a document checklist based on your exact profile before you file.",
+    ].join("\n");
+  }
+
+  if (country === "US") {
+    return [
+      "Here is a practical US filing path:",
+      "1. Gather forms (W-2/1099 and deduction/credit docs).",
+      "2. Select filing status and confirm standard vs itemized deduction.",
+      "3. Prepare federal return (and state return if applicable).",
+      "4. Reconcile withholding/credits and pay balance due if any.",
+      "5. E-file, keep acknowledgements, and store records.",
+    ].join("\n");
+  }
+
+  if (country === "UK") {
+    return [
+      "Here is a practical UK filing path:",
+      "1. Gather P60/P45 and other income records.",
+      "2. Check if Self Assessment is required for your case.",
+      "3. Complete return details, relief claims, and tax due.",
+      "4. Submit by deadline and pay any balance due.",
+      "5. Keep HMRC confirmations and supporting records.",
+    ].join("\n");
+  }
+
+  if (country === "SG") {
+    return [
+      "Here is a practical Singapore filing path:",
+      "1. Prepare income and relief documents.",
+      "2. Verify auto-included income and relief eligibility.",
+      "3. Submit return in IRAS portal before deadline.",
+      "4. Review Notice of Assessment and payment plan if needed.",
+      "5. Keep records for compliance.",
+    ].join("\n");
+  }
+
+  if (country === "AE") {
+    return [
+      "For UAE, filing obligations depend on your exact profile.",
+      "1. Confirm whether your case has any personal/business tax filing obligation.",
+      "2. Check VAT/corporate-tax relevance if you have business income/entity structure.",
+      "3. Prepare records and submit required declarations where applicable.",
+      "4. Keep filing/payment evidence for compliance.",
+    ].join("\n");
+  }
+
+  return "I can guide filing steps if you share your country first.";
+}
+
 function buildContextBrief(context: unknown): string {
   if (!context || typeof context !== "object") return "No structured context available.";
   const c = context as Record<string, unknown>;
@@ -103,6 +186,9 @@ STRICT RULES:
 - Prefer ranked, concrete actions over generic advice.
 - If relevant, include 1-2 next-year planning ideas.
 - Do NOT repeat the previous assistant answer verbatim.
+- For questions about filing process (e.g., "how to file tax"), provide practical procedural steps for the detected country even if full steps are not in context.
+- Keep filing-process guidance clearly labeled as general procedural guidance (not legal advice).
+- Do not use markdown syntax in output (no **bold**, no markdown bullets).
 - If the user asks for "anything else" / "other options" and no additional high-confidence action exists in context, explicitly say:
   - there are no additional tax-saving actions from current data, and
   - what new data or next-year planning could unlock more options.
@@ -142,6 +228,10 @@ Return ONLY valid JSON:
   try {
     const parsed = JSON.parse(jsonString);
     const data = QaResponseSchema.parse(parsed);
+    const country = detectCountryFromContext(params.context);
+    const filingQuestion = isFilingProcessQuestion(params.question);
+
+    data.answer = stripMarkdownArtifacts(data.answer);
 
     if (lastAssistantMessage) {
       const prev = normalizeForCompare(lastAssistantMessage);
@@ -152,8 +242,14 @@ Return ONLY valid JSON:
       }
     }
 
+    if (filingQuestion && looksLikeContextRefusal(data.answer)) {
+      data.answer = buildGenericFilingGuide(country);
+    }
+
     if (data.followUps) {
-      const uniq = Array.from(new Set(data.followUps.map((f) => f.trim()).filter(Boolean)));
+      const uniq = Array.from(
+        new Set(data.followUps.map((f) => stripMarkdownArtifacts(f).trim()).filter(Boolean)),
+      );
       data.followUps = uniq.slice(0, 3);
     }
     return data;

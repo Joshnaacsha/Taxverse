@@ -277,7 +277,7 @@ export function QAPage() {
                       )}
                       <div
                         className={cn(
-                          "max-w-[70%] rounded-2xl px-4 py-3 text-sm",
+                          "max-w-[70%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm",
                           msg.role === "user"
                             ? "bg-cyan-500 text-white"
                             : "bg-white/10 text-white/90 border border-white/20"
