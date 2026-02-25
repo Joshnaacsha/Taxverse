@@ -21,7 +21,7 @@ export function Navigation() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-cyan-300/20 bg-[linear-gradient(180deg,rgba(2,6,23,0.92)_0%,rgba(3,15,40,0.86)_100%)] backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-[#1e3a8a66] bg-[#0f172aee] backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -31,7 +31,7 @@ export function Navigation() {
             transition={{ duration: 0.45, ease: "easeOut" }}
           >
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="text-2xl font-bold bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 bg-clip-text text-transparent transition-all duration-300 group-hover:brightness-125">
+              <div className="text-2xl font-bold text-[#38bdf8] transition-all duration-300 group-hover:text-[#60a5fa]">
                 Taxverse
               </div>
             </Link>
@@ -54,7 +54,7 @@ export function Navigation() {
                     href={link.href}
                     className={cn(
                       "group relative flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
-                      "hover:bg-cyan-400/10",
+                      "hover:bg-[#1e3a8a4d]",
                       pathname === link.href
                         ? uiTheme.navActive
                         : "text-white/75 hover:text-white"
@@ -63,7 +63,7 @@ export function Navigation() {
                     <Icon className="w-4 h-4" />
                     {link.label}
                     {pathname !== link.href ? (
-                      <span className="absolute inset-x-3 bottom-1 h-px origin-left scale-x-0 bg-cyan-300/80 transition-transform duration-300 group-hover:scale-x-100" />
+                      <span className="absolute inset-x-3 bottom-1 h-px origin-left scale-x-0 bg-[#2563ebcc] transition-transform duration-300 group-hover:scale-x-100" />
                     ) : null}
                   </Link>
                 </motion.div>

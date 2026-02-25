@@ -5,6 +5,7 @@ import type { AnalyzeResponse, SalaryResult } from "@/lib/types";
 import { formatMoney, formatPct } from "@/lib/format";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { Spotlight } from "@/components/ui/spotlight";
+import { AuroraBackground } from "@/components/ui/aurora-background";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { cn } from "@/lib/utils";
 import { uiTheme } from "@/lib/uiTheme";
@@ -70,6 +71,17 @@ function money(report: AnalyzeResponse["report"] | undefined, value: number): st
   return formatMoney(value, report?.currency ?? "INR");
 }
 
+function readSession<T>(key: string): T | null {
+  if (typeof window === "undefined") return null;
+  const raw = sessionStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
 export function ResultsPage() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [salary, setSalary] = useState<SalaryResult | null>(null);
@@ -77,18 +89,17 @@ export function ResultsPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem("taxResult");
-      if (stored) setResult(JSON.parse(stored));
-      const storedSalary = sessionStorage.getItem("salaryResult");
-      if (storedSalary) setSalary(JSON.parse(storedSalary));
+    const timer = window.setTimeout(() => {
+      setResult(readSession<AnalyzeResponse>("taxResult"));
+      setSalary(readSession<SalaryResult>("salaryResult"));
       setLoading(false);
-    }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const report = result?.report;
   const insights = result?.insights;
-  const projection = result?.projection ?? [];
+  const projection = useMemo(() => result?.projection ?? [], [result?.projection]);
 
   const recommendedOption = useMemo(() => {
     if (!report) return null;
@@ -167,23 +178,27 @@ export function ResultsPage() {
 
   if (loading) {
     return (
-      <div className={`${uiTheme.page} flex items-center justify-center`}>
-        <div className="text-white/72">Loading results...</div>
-      </div>
+      <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+        <div className={`${uiTheme.page} flex w-full items-center justify-center`}>
+          <div className="text-white/72">Loading results...</div>
+        </div>
+      </AuroraBackground>
     );
   }
 
   if (!result || !report) {
     return (
-      <div className={`${uiTheme.page} pb-12 pt-10`}>
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center">
-            <h1 className="mb-4 text-3xl font-bold">No Results Found</h1>
-            <p className={`${uiTheme.textMuted} mb-8`}>Run the calculator first to see results.</p>
-            <CTAButton onClick={() => (window.location.href = "/salary")}>Analyze salary</CTAButton>
+      <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+        <div className={`${uiTheme.page} w-full pb-12 pt-10`}>
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="text-center">
+              <h1 className="mb-4 text-3xl font-bold">No Results Found</h1>
+              <p className={`${uiTheme.textMuted} mb-8`}>Run the calculator first to see results.</p>
+              <CTAButton onClick={() => (window.location.href = "/salary")}>Analyze salary</CTAButton>
+            </div>
           </div>
         </div>
-      </div>
+      </AuroraBackground>
     );
   }
 
@@ -191,14 +206,13 @@ export function ResultsPage() {
   const projectionData = projection.map((p) => ({ year: p.year, ...p.optionTaxes }));
 
   const colors = ["#0ea5e9", "#a855f7", "#ec4899", "#f97316", "#14b8a6"];
-  const optionColor = (index: number) => colors[index % colors.length];
-
   return (
-    <div className={`${uiTheme.page} relative overflow-hidden pb-12 pt-10`}>
-      <Spotlight className="-top-44 left-0" fill="rgba(14,165,233,0.28)" />
-      <div className="mx-auto max-w-7xl px-4">
+    <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+      <div className={`${uiTheme.page} relative w-full overflow-hidden pb-12 pt-10`}>
+        <Spotlight className="-top-44 left-0" fill="rgba(14,165,233,0.28)" />
+        <div className="mx-auto max-w-7xl px-4">
         <div className="mb-10">
-          <h1 className="mb-3 bg-gradient-to-r from-cyan-200 via-sky-300 to-blue-400 bg-clip-text text-4xl font-bold text-transparent md:text-6xl">
+          <h1 className="mb-3 text-4xl font-bold text-[#93c5fd] md:text-6xl">
             Results
           </h1>
           <p className="text-sm text-white/72 md:text-base">
@@ -505,7 +519,8 @@ export function ResultsPage() {
             View Insights
           </CTAButton>
         </div>
+        </div>
       </div>
-    </div>
+    </AuroraBackground>
   );
 }

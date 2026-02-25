@@ -9,7 +9,7 @@ function createLlm() {
   if (!process.env.GOOGLE_API_KEY) return null;
   return new ChatGoogleGenerativeAI({
     model: "gemini-2.5-flash",
-    temperature: 0.2, // VERY important for finance
+    temperature: 0.2, 
     apiKey: process.env.GOOGLE_API_KEY,
   });
 }
@@ -27,6 +27,24 @@ function extractJsonLike(text: string): string | null {
   return null;
 }
 
+function getResponseTextContent(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === "string") return part;
+        if (part && typeof part === "object" && "text" in part) {
+          const text = (part as { text?: unknown }).text;
+          return typeof text === "string" ? text : "";
+        }
+        return "";
+      })
+      .join("\n")
+      .trim();
+  }
+  return String(content ?? "");
+}
+
 export async function taxAnalysisAgent(
   state: TaxGraphState
 ): Promise<TaxGraphState> {
@@ -41,7 +59,8 @@ export async function taxAnalysisAgent(
         summary: "AI explanation skipped (GOOGLE_API_KEY not set).",
         stability: "Low",
         futureWarning: "Set GOOGLE_API_KEY in your backend .env to enable AI.",
-        actionableAdvice: [],
+        thisYearActions: [],
+        nextYearPlanning: [],
       },
     };
   }
@@ -67,24 +86,38 @@ ${JSON.stringify(
 )}
 
 TASK:
-1. Explain why the recommended regime is better
+1. Explain why the recommended regime is better, based ONLY on the given data
 2. Decide stability: High / Medium / Low
 3. Warn about future risks in plain language
-4. Give actionable advice in plain language
-5. Include future-focused saving tips (what to do next year)
+
+4. List actions the user can STILL take in the CURRENT financial year
+   - Focus on unused deductions, documentation, or timing
+   - Do NOT assume new income or investments
+   - These should be immediately actionable
+
+5. List how the user should PLAN for the NEXT financial year
+   - Focus on regime planning, income growth, and better preparation
+   - Do NOT repeat current-year actions
+
+Rules:
+- Do NOT calculate tax
+- Do NOT modify numbers
+- Do NOT invent new deductions
+- Base everything strictly on the provided data
 
 Return ONLY valid JSON in this format:
 {
   "summary": "",
   "stability": "High | Medium | Low",
   "futureWarning": "",
-  "actionableAdvice": []
+  "thisYearActions": [],
+  "nextYearPlanning": []
 }
 `;
 
   const response = await llm.invoke(prompt);
 
-  const content = String(response.content ?? "");
+  const content = getResponseTextContent(response.content);
   const jsonString = extractJsonLike(content);
 
   if (!jsonString) {
@@ -94,14 +127,22 @@ Return ONLY valid JSON in this format:
         summary: "AI analysis unavailable (no JSON returned).",
         stability: "Low",
         futureWarning: "Re-run with includeAi=true, and verify your API key is set.",
-        actionableAdvice: [],
+        thisYearActions: [],
+        nextYearPlanning: [],
       },
     };
   }
 
   try {
     const parsed = JSON.parse(jsonString);
-    const aiAnalysis = AiAnalysisSchema.parse(parsed);
+    const raw = AiAnalysisSchema.parse(parsed);
+    const aiAnalysis = {
+      summary: raw.summary,
+      stability: raw.stability,
+      futureWarning: raw.futureWarning,
+      thisYearActions: raw.thisYearActions.length ? raw.thisYearActions : (raw.actionableAdvice ?? []),
+      nextYearPlanning: raw.nextYearPlanning,
+    };
     return { ...state, aiAnalysis };
   } catch {
     return {
@@ -110,7 +151,8 @@ Return ONLY valid JSON in this format:
         summary: "AI analysis unavailable (invalid JSON).",
         stability: "Low",
         futureWarning: "Try again; model output did not match required schema.",
-        actionableAdvice: [],
+        thisYearActions: [],
+        nextYearPlanning: [],
       },
     };
   }

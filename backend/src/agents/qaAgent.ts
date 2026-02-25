@@ -24,6 +24,24 @@ function extractJsonLike(text: string): string | null {
   return null;
 }
 
+function getResponseTextContent(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === "string") return part;
+        if (part && typeof part === "object" && "text" in part) {
+          const text = (part as { text?: unknown }).text;
+          return typeof text === "string" ? text : "";
+        }
+        return "";
+      })
+      .join("\n")
+      .trim();
+  }
+  return String(content ?? "");
+}
+
 export async function answerWithContext(params: {
   context: unknown;
   question: string;
@@ -40,7 +58,7 @@ export async function answerWithContext(params: {
     .join("\n");
 
   const prompt = `
-You are RegimeIQ Q&A assistant for an India tax regime decision.
+You are Taxverse Q&A assistant for personal tax decision support.
 
 STRICT RULES:
 - Use ONLY the provided CONTEXT (numbers, assumptions, fields). If missing, say you don't have it.
@@ -66,7 +84,7 @@ Return ONLY valid JSON:
 `;
 
   const response = await llm.invoke(prompt);
-  const content = String(response.content ?? "");
+  const content = getResponseTextContent(response.content);
   const jsonString = extractJsonLike(content);
   if (!jsonString) {
     return { answer: content.trim() || "No answer returned.", error: "invalid_json" };

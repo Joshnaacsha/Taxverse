@@ -5,15 +5,14 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Globe } from "@/components/magicui/globe";
-import { Spotlight } from "@/components/ui/spotlight";
 import { Zap, TrendingUp, Cpu, Target, BarChart3 } from "lucide-react";
 
 const COUNTRIES = [
   { code: "IN", label: "India", lat: 20.5937, lon: 78.9629 },
-  { code: "US", label: "United States", lat: 38.9072, lon: -77.0369 },
-  { code: "UK", label: "United Kingdom", lat: 51.5072, lon: -0.1276 },
+  { code: "US", label: "United States", lat: 39.8283, lon: -98.5795 },
+  { code: "UK", label: "United Kingdom", lat: 54.5, lon: -2.5 },
   { code: "SG", label: "Singapore", lat: 1.3521, lon: 103.8198 },
-  { code: "AE", label: "UAE", lat: 25.2048, lon: 55.2708 },
+  { code: "AE", label: "UAE", lat: 24.4539, lon: 54.3773 },
 ] as const;
 
 function CTAButton(props: {
@@ -23,7 +22,7 @@ function CTAButton(props: {
   className?: string;
 }) {
   const base =
-    "inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-slate-950 bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 shadow-[0_10px_40px_rgba(56,189,248,0.25)] hover:shadow-[0_12px_50px_rgba(56,189,248,0.35)] transition";
+    "inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-[#0f172a] bg-[#38bdf8] hover:bg-[#0ea5e9] transition";
   if (props.href) {
     return (
       <Link href={props.href} className={`${base} ${props.className ?? ""}`}>
@@ -61,7 +60,7 @@ export function LandingPage() {
       const lat = toRad(country.lat);
       const lon = toRad(country.lon);
 
-      const lonShifted = lon + phi;
+      const lonShifted = lon - phi;
       const cosLat = Math.cos(lat);
       const sinLat = Math.sin(lat);
       const cosLon = Math.cos(lonShifted);
@@ -92,19 +91,19 @@ export function LandingPage() {
       title: "Compare",
       subtitle: "Country Tax Options",
       Icon: BarChart3,
-      iconClass: "text-cyan-400",
+      iconClass: "text-blue-400",
     },
     {
       title: "AI-Powered",
       subtitle: "Smart Explanations",
       Icon: Cpu,
-      iconClass: "text-violet-400",
+      iconClass: "text-blue-300",
     },
     {
       title: "File Better",
       subtitle: "Actionable Next Steps",
       Icon: TrendingUp,
-      iconClass: "text-fuchsia-400",
+      iconClass: "text-blue-200",
     },
   ] as const;
 
@@ -113,25 +112,25 @@ export function LandingPage() {
       title: "Precise Recommendations",
       text: "Get clear recommendations based on your salary, deductions, and investments.",
       Icon: Target,
-      iconClass: "text-cyan-400",
+      iconClass: "text-blue-400",
     },
     {
       title: "Long-term Projections",
       text: "See if your recommendation still makes sense when your income grows in future years.",
       Icon: TrendingUp,
-      iconClass: "text-violet-400",
+      iconClass: "text-blue-300",
     },
     {
       title: "AI Insights",
       text: "Ask follow-up questions and get plain-language explanations based on your own numbers.",
       Icon: Cpu,
-      iconClass: "text-fuchsia-400",
+      iconClass: "text-blue-200",
     },
     {
       title: "Action Plans",
       text: "Get a simple action list showing where extra investment can lower your tax the most.",
       Icon: Zap,
-      iconClass: "text-amber-400",
+      iconClass: "text-blue-100",
     },
   ] as const;
 
@@ -140,15 +139,15 @@ export function LandingPage() {
       step: "Step 1",
       title: "Add your details",
       text: "Upload salary slip for India or enter income for other countries.",
-      borderClass: "border-cyan-300/20",
-      stepClass: "text-cyan-200/80",
+      borderClass: "border-blue-300/20",
+      stepClass: "text-blue-200/80",
     },
     {
       step: "Step 2",
       title: "Compare outcomes",
       text: "Review tax options, projections, and what-if scenarios in one place.",
-      borderClass: "border-sky-300/20",
-      stepClass: "text-sky-200/80",
+      borderClass: "border-blue-300/20",
+      stepClass: "text-blue-200/80",
     },
     {
       step: "Step 3",
@@ -160,40 +159,16 @@ export function LandingPage() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      <AuroraBackground className="h-screen justify-center bg-zinc-950 text-white dark:bg-zinc-950 dark:text-white">
-        <Spotlight className="-top-40 left-0" fill="rgba(56, 189, 248, 0.35)" />
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          animate={
-            shouldReduceMotion
-              ? undefined
-              : { backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"] }
-          }
-          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 18% 22%, rgba(56,189,248,0.16), transparent 36%), radial-gradient(circle at 82% 28%, rgba(59,130,246,0.13), transparent 40%), radial-gradient(circle at 50% 84%, rgba(14,165,233,0.11), transparent 38%)",
-            backgroundSize: "180% 180%",
-          }}
-        />
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-4">
-          <div className="grid h-full items-center gap-12 lg:grid-cols-2">
+    <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+      <div className="relative z-10 w-full">
+        <div className="mx-auto w-full max-w-6xl px-4 pt-0">
+          <div className="grid min-h-[72vh] items-center gap-12 lg:grid-cols-2">
             <motion.div
               className="flex flex-col justify-center"
               initial={shouldReduceMotion ? undefined : { opacity: 0, y: 30 }}
               animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: introDelay }}
             >
-              <motion.div
-                className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-slate-800/70 px-3 py-1 text-xs text-white/88"
-                initial={shouldReduceMotion ? undefined : { opacity: 0, y: 10 }}
-                animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: introDelay + 0.05 }}
-              >
-                Global Tax Decision Intelligence
-              </motion.div>
               <motion.h1
                 className="mb-4 text-5xl font-bold tracking-tight md:text-6xl"
                 initial={shouldReduceMotion ? undefined : { opacity: 0, y: 14 }}
@@ -203,7 +178,7 @@ export function LandingPage() {
                 Taxverse
               </motion.h1>
               <motion.p
-                className="mb-2 bg-gradient-to-r from-sky-400 via-violet-400 to-fuchsia-400 bg-clip-text text-lg font-semibold text-transparent text-white/88"
+                className="mb-2 text-lg font-semibold text-[#93c5fd]"
                 initial={shouldReduceMotion ? undefined : { opacity: 0, y: 14 }}
                 animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
                 transition={{ duration: 0.55, delay: introDelay + 0.16 }}
@@ -216,7 +191,7 @@ export function LandingPage() {
                 animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
                 transition={{ duration: 0.55, delay: introDelay + 0.22 }}
               >
-                Analyze taxes across countries, understand how your numbers are calculated, and explore future scenarios. Built for accuracy, designed for clarity.
+                Make smarter tax moves with real clarity.
               </motion.p>
 
               <motion.div
@@ -234,7 +209,7 @@ export function LandingPage() {
                 {heroCards.map((card, index) => (
                   <motion.div
                     key={card.title}
-                    className="rounded-lg border border-white/20 bg-slate-800/70 p-4 transition-colors duration-300 hover:border-cyan-200/45 hover:bg-slate-800/85"
+                    className="rounded-lg border border-[#1E3A8A66] bg-[#0F172A] p-4 transition-colors duration-300 hover:border-[#2563EB99] hover:bg-[#111C34]"
                     initial={shouldReduceMotion ? undefined : { opacity: 0, y: 26 }}
                     animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.45, delay: introDelay + 0.38 + index * 0.1 }}
@@ -255,14 +230,14 @@ export function LandingPage() {
               initial={
                 shouldReduceMotion
                   ? undefined
-                  : { opacity: 0.8, scale: 1.85, x: -250, y: -28, rotate: -18, filter: "blur(6px)" }
+                  : { opacity: 0.8, scale: 1.55, x: -120, y: -18, filter: "blur(4px)" }
               }
               animate={
                 shouldReduceMotion
                   ? undefined
-                  : { opacity: 1, scale: 1, x: 0, y: 0, rotate: 0, filter: "blur(0px)" }
+                  : { opacity: 1, scale: 1, x: 0, y: 0, filter: "blur(0px)" }
               }
-              transition={{ duration: 1.9, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+              transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
             >
               <motion.div
                 className="relative mx-auto aspect-square w-full max-w-[520px] transform-gpu"
@@ -270,11 +245,14 @@ export function LandingPage() {
                   shouldReduceMotion
                     ? undefined
                     : {
-                        rotate: [0, 130, 250, 330, 360],
+                        y: [0, -7, 0, 6, 0],
+                        rotate: [0, 0.9, 0, -0.9, 0],
                       }
                 }
                 transition={{
-                  rotate: { duration: 1.9, ease: [0.19, 1, 0.22, 1], delay: 0.02 },
+                  duration: 9.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
                 }}
               >
                 <motion.div
@@ -282,23 +260,22 @@ export function LandingPage() {
                   animate={
                     shouldReduceMotion
                       ? undefined
-                      : { x: [0, 10, 0, -9, 0], y: [0, -8, 0, 7, 0], rotate: [0, 1.7, 0, -1.6, 0] }
+                      : { x: [0, 6, 0, -5, 0], y: [0, -4, 0, 4, 0] }
                   }
-                  transition={{ duration: 8.4, repeat: Infinity, ease: "easeInOut", delay: 1.85 }}
+                  transition={{ duration: 10.5, repeat: Infinity, ease: "easeInOut" }}
                 >
                   <motion.div
                     className="absolute inset-0 rounded-full"
                     animate={shouldReduceMotion ? undefined : { opacity: [0.32, 0.48, 0.32], scale: [0.98, 1.02, 0.98] }}
                     transition={{ duration: 6.8, repeat: Infinity, ease: "easeInOut" }}
                     style={{
-                      boxShadow: "0 0 100px rgba(148, 223, 255, 0.22)",
+                      boxShadow: "0 0 88px rgba(37, 99, 235, 0.2)",
                     }}
                   />
-                  <Globe className="inset-0 h-full w-full" onRenderFrame={onGlobeFrame} />
-                  <motion.div
-                    className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.22),rgba(2,6,23,0)_62%)]"
-                    animate={shouldReduceMotion ? undefined : { opacity: [0.4, 0.65, 0.4] }}
-                    transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+                  <Globe
+                    className="inset-0 h-full w-full"
+                    initialPhi={-1.72}
+                    onRenderFrame={onGlobeFrame}
                   />
                   {projectedPins.map((country) => (
                     <motion.div
@@ -329,7 +306,7 @@ export function LandingPage() {
                         <span className="absolute left-1/2 top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-400/30 blur-[0.5px] group-hover:bg-orange-300/45" />
                         <span className="absolute left-1/2 top-1/2 z-20 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-orange-500/80 bg-orange-900/95 shadow-[0_0_8px_rgba(194,65,12,0.45)]" />
                         <span className="absolute left-1/2 top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-orange-300/55 opacity-70 group-hover:opacity-100 group-hover:animate-ping motion-reduce:animate-none" />
-                        <span className="absolute left-1/2 top-[-16px] z-30 -translate-x-1/2 whitespace-nowrap rounded-full border border-cyan-300/35 bg-slate-900/82 px-2.5 py-1 text-[11px] font-medium text-cyan-100 opacity-100 shadow-lg backdrop-blur-sm transition-colors group-hover:border-cyan-200/60 group-hover:text-cyan-50">
+                        <span className="absolute left-1/2 top-[-16px] z-30 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#2563EB88] bg-[#0F172A] px-2.5 py-1 text-[11px] font-medium text-[#bfdbfe] opacity-100 shadow-lg backdrop-blur-sm transition-colors group-hover:border-[#60a5facc] group-hover:text-[#dbeafe]">
                           {country.label}
                         </span>
                       </Link>
@@ -340,9 +317,7 @@ export function LandingPage() {
             </motion.div>
           </div>
         </div>
-      </AuroraBackground>
-
-      <div className="mx-auto max-w-6xl px-4 py-20">
+        <div className="mx-auto max-w-6xl px-4 py-20">
         <motion.h2
           className="mb-12 text-center text-3xl font-bold"
           initial={shouldReduceMotion ? undefined : { opacity: 0, y: 18 }}
@@ -356,7 +331,7 @@ export function LandingPage() {
           {whyCards.map((card, index) => (
             <motion.div
               key={card.title}
-              className="rounded-2xl border border-white/20 bg-slate-800/70 p-8 transition-colors duration-300 hover:border-cyan-200/35 hover:bg-slate-800/85"
+              className="rounded-2xl border border-[#1E3A8A66] bg-[#0F172A] p-8 transition-colors duration-300 hover:border-[#2563EB99] hover:bg-[#111C34]"
               initial={shouldReduceMotion ? undefined : { opacity: 0, y: 22 }}
               whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-12%" }}
@@ -371,9 +346,9 @@ export function LandingPage() {
             </motion.div>
           ))}
         </div>
-      </div>
+        </div>
 
-      <div className="mx-auto max-w-6xl px-4 pb-16">
+        <div className="mx-auto max-w-6xl px-4 pb-16">
         <motion.h3
           className="mb-6 text-xl font-semibold text-white/90"
           initial={shouldReduceMotion ? undefined : { opacity: 0, y: 18 }}
@@ -387,7 +362,7 @@ export function LandingPage() {
           {stepCards.map((card, index) => (
             <motion.div
               key={card.step}
-              className={`rounded-2xl border ${card.borderClass} bg-slate-900/60 p-5`}
+              className={`rounded-2xl border ${card.borderClass} bg-[#0F172A] p-5`}
               initial={shouldReduceMotion ? undefined : { opacity: 0, y: 18 }}
               whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-12%" }}
@@ -399,8 +374,8 @@ export function LandingPage() {
             </motion.div>
           ))}
         </div>
+        </div>
       </div>
-
-    </div>
+    </AuroraBackground>
   );
 }

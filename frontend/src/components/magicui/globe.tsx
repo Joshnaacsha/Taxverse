@@ -28,15 +28,18 @@ const GLOBE_CONFIG: COBEOptions = {
 export function Globe({
   className,
   config = GLOBE_CONFIG,
+  initialPhi,
   onRenderFrame,
 }: {
   className?: string;
   config?: COBEOptions;
+  initialPhi?: number;
   onRenderFrame?: (frame: { phi: number; theta: number; size: number }) => void;
 }) {
-  let phi = 0;
-  let width = 0;
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const widthRef = useRef(0);
+  const phiRef = useRef(initialPhi ?? config.phi ?? 0);
+  const lastFrameTimeRef = useRef<number | null>(null);
   const pointerInteracting = useRef<number | null>(null);
   const pointerInteractionMovement = useRef(0);
 
@@ -65,7 +68,7 @@ export function Globe({
   useEffect(() => {
     const onResize = () => {
       if (canvasRef.current) {
-        width = canvasRef.current.offsetWidth;
+        widthRef.current = canvasRef.current.offsetWidth;
       }
     };
 
@@ -74,18 +77,28 @@ export function Globe({
 
     const globe = createGlobe(canvasRef.current!, {
       ...config,
-      width: width * 2,
-      height: width * 2,
+      width: widthRef.current * 2,
+      height: widthRef.current * 2,
       onRender: (state) => {
-        if (!pointerInteracting.current) phi += 0.0032;
-        const currentPhi = phi + rs.get();
+        const now = performance.now();
+        const last = lastFrameTimeRef.current ?? now;
+        const dt = Math.min(40, now - last);
+        lastFrameTimeRef.current = now;
+
+        if (!pointerInteracting.current) {
+          const baseSpeed = 0.00024;
+          const drift = Math.sin(now * 0.0006) * 0.00003;
+          phiRef.current += (baseSpeed + drift) * dt;
+        }
+
+        const currentPhi = phiRef.current + rs.get();
         state.phi = currentPhi;
-        state.width = width * 2;
-        state.height = width * 2;
+        state.width = widthRef.current * 2;
+        state.height = widthRef.current * 2;
         onRenderFrame?.({
           phi: currentPhi,
           theta: state.theta ?? config.theta ?? 0.3,
-          size: width,
+          size: widthRef.current,
         });
       },
     });

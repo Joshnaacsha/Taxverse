@@ -142,7 +142,8 @@ export interface AnalyzeResponse {
     summary: string;
     stability: "High" | "Medium" | "Low";
     futureWarning?: string;
-    actionableAdvice: string[];
+    thisYearActions: string[];
+    nextYearPlanning: string[];
   };
 }
 

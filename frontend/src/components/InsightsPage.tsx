@@ -5,6 +5,7 @@ import type { AnalyzeResponse } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { Spotlight } from "@/components/ui/spotlight";
+import { AuroraBackground } from "@/components/ui/aurora-background";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Cpu, AlertCircle, TrendingUp, Zap, Compass, Clock, Sparkles, BadgeCheck } from "lucide-react";
 import { uiTheme } from "@/lib/uiTheme";
@@ -21,16 +22,27 @@ function Stat(props: { label: string; value: string; icon?: React.ReactNode }) {
   );
 }
 
+function readSession<T>(key: string): T | null {
+  if (typeof window === "undefined") return null;
+  const raw = sessionStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
 export function InsightsPage() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem("taxResult");
-      if (stored) setResult(JSON.parse(stored));
+    const timer = window.setTimeout(() => {
+      setResult(readSession<AnalyzeResponse>("taxResult"));
       setLoading(false);
-    }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const report = result?.report;
@@ -66,7 +78,7 @@ export function InsightsPage() {
   const flipPoint = insights?.flipPoints?.earnedIncomeFlip;
   const reportCurrency = report?.currency ?? "INR";
   const money = (value: number) => formatMoney(value, reportCurrency);
-  const futureTips = useMemo(() => {
+  const futureTips = (() => {
     if (!report) return [];
     const tips: string[] = [];
     if (nextActions[0]?.label) {
@@ -79,44 +91,52 @@ export function InsightsPage() {
       tips.push(`You are already saving ${money(report.savings)} with the current recommendation. Keep your documents ready so you can claim the full benefit.`);
     }
     return tips.slice(0, 3);
-  }, [flipPoint, nextActions, report, reportCurrency]);
+  })();
 
   if (loading) {
     return (
-      <div className={`${uiTheme.page} flex items-center justify-center`}>
-        <div className={uiTheme.textMuted}>Loading insights...</div>
-      </div>
+      <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+        <div className={`${uiTheme.page} flex w-full items-center justify-center`}>
+          <div className={uiTheme.textMuted}>Loading insights...</div>
+        </div>
+      </AuroraBackground>
     );
   }
 
   if (!result || !report) {
     return (
-      <div className={`${uiTheme.page} pt-8 pb-12`}>
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold mb-4">No Data Available</h1>
-            <p className="text-white/72">Run the calculator to unlock detailed insights.</p>
+      <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+        <div className={`${uiTheme.page} w-full pt-8 pb-12`}>
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold mb-4">No Data Available</h1>
+              <p className="text-white/72">Run the calculator to unlock detailed insights.</p>
+            </div>
           </div>
         </div>
-      </div>
+      </AuroraBackground>
     );
   }
 
   const recommended = report.options.find((o) => o.id === report.recommendedOptionId)?.name ?? report.recommendedOptionId;
   const isIndia = report.country === "IN";
+  const aiAnalysis = result.aiAnalysis as (AnalyzeResponse["aiAnalysis"] & { actionableAdvice?: string[] }) | undefined;
+  const thisYearActions = aiAnalysis?.thisYearActions ?? aiAnalysis?.actionableAdvice ?? [];
+  const nextYearPlanning = aiAnalysis?.nextYearPlanning ?? [];
 
   return (
-    <div className={`${uiTheme.page} relative overflow-hidden pt-8 pb-12`}>
-      <Spotlight className="-top-52 left-0" fill="rgba(56,189,248,0.32)" />
-      <div className="mx-auto max-w-6xl px-4">
+    <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+      <div className={`${uiTheme.page} relative w-full overflow-hidden pt-8 pb-12`}>
+        <Spotlight className="-top-52 left-0" fill="rgba(56,189,248,0.32)" />
+        <div className="mx-auto max-w-6xl px-4">
         <div className="mb-8">
-          <h1 className="mb-2 bg-gradient-to-r from-cyan-200 via-sky-300 to-blue-400 bg-clip-text text-4xl font-bold text-transparent">
+          <h1 className="mb-2 text-4xl font-bold text-[#93c5fd]">
             Insights You Can Use
           </h1>
           <p className="text-white/72">{report.taxYear} | {report.country} | Recommended: {recommended}</p>
         </div>
 
-        {result.aiAnalysis ? (
+        {aiAnalysis ? (
           <CardSpotlight className={`rounded-2xl p-8 mb-8 ${uiTheme.panel}`} radius={420}>
             <div className="relative z-10">
               <h3 className="flex items-center gap-2 text-xl font-semibold mb-4">
@@ -127,27 +147,41 @@ export function InsightsPage() {
               <div className="space-y-4">
                 <div className="p-4 rounded-lg border border-white/20 bg-slate-800/70">
                   <div className="text-sm font-semibold text-white/78 mb-2">Summary</div>
-                  <p className="text-sm text-white/88">{result.aiAnalysis.summary}</p>
+                  <p className="text-sm text-white/88">{renderInlineBold(aiAnalysis.summary)}</p>
                 </div>
 
-                {result.aiAnalysis.futureWarning ? (
+                {aiAnalysis.futureWarning ? (
                   <div className="p-4 rounded-lg border border-amber-500/20 bg-amber-500/10">
                     <div className="flex items-center gap-2 text-sm font-semibold text-amber-300 mb-2">
                       <AlertCircle className="w-4 h-4" />
                       Future Considerations
                     </div>
-                    <p className="text-sm text-amber-100">{result.aiAnalysis.futureWarning}</p>
+                    <p className="text-sm text-amber-100">{renderInlineBold(aiAnalysis.futureWarning)}</p>
                   </div>
                 ) : null}
 
-                {result.aiAnalysis.actionableAdvice?.length ? (
+                {thisYearActions.length ? (
                   <div className="p-4 rounded-lg border border-white/20 bg-slate-800/70">
-                    <div className="text-sm font-semibold text-white/78 mb-3">Actionable Advice</div>
+                    <div className="text-sm font-semibold text-white/78 mb-3">This Year Actions</div>
                     <ul className="space-y-2">
-                      {result.aiAnalysis.actionableAdvice.map((advice, idx) => (
+                      {thisYearActions.map((advice, idx) => (
                         <li key={idx} className="flex gap-2 text-sm text-white/78">
                           <span className="text-green-400 mt-0.5">-</span>
-                          <span>{advice}</span>
+                          <span>{renderInlineBold(normalizeAiLine(advice))}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {nextYearPlanning.length ? (
+                  <div className="p-4 rounded-lg border border-sky-300/20 bg-sky-500/10">
+                    <div className="text-sm font-semibold text-sky-100 mb-3">Next Year Planning</div>
+                    <ul className="space-y-2">
+                      {nextYearPlanning.map((advice, idx) => (
+                        <li key={idx} className="flex gap-2 text-sm text-sky-100/90">
+                          <span className="text-cyan-300 mt-0.5">-</span>
+                          <span>{renderInlineBold(normalizeAiLine(advice))}</span>
                         </li>
                       ))}
                     </ul>
@@ -298,9 +332,28 @@ export function InsightsPage() {
             ) : null}
           </div>
         </CardSpotlight>
+        </div>
       </div>
-    </div>
+    </AuroraBackground>
   );
+}
+
+function renderInlineBold(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*)/g).filter(Boolean);
+  return parts.map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={`${part}-${idx}`} className="font-semibold text-white">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={`${part}-${idx}`}>{part}</span>;
+  });
+}
+
+function normalizeAiLine(line: string): string {
+  return line.replace(/^\s*[-*]\s+/, "").trim();
 }
 
 

@@ -8,7 +8,7 @@ export const CardSpotlight = ({
   children,
   radius = 350,
   color = "#262626",
-  enableEffect = true,
+  enableEffect = false,
   className,
   ...props
 }: {

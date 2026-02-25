@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { Spotlight } from "@/components/ui/spotlight";
+import { AuroraBackground } from "@/components/ui/aurora-background";
 import { cn } from "@/lib/utils";
 import { analyzeSalaryIndia, analyzeTax, parsePayslipPdf } from "@/lib/api";
 import type {
@@ -134,28 +135,32 @@ const defaultAnnualIncomeByCountry: Record<NonIndiaCountry, number> = {
   AE: 200000,
 };
 
+const SAMPLE_COMPONENTS: SalaryComponentsMonthly = {
+  basic: 62_500,
+  hra: 25_000,
+  specialAllowance: 18_000,
+  otherAllowance: 7_500,
+  bonusMonthly: 10_000,
+};
+
+const SAMPLE_DEDUCTIONS: SalaryDeductionsMonthly = {
+  employeePf: 7_500,
+  professionalTax: 200,
+  otherDeductions: 800,
+};
+
 export function SalaryPage() {
   const router = useRouter();
   const [country, setCountry] = useState<CountryCode>("IN");
 
   const [mode, setMode] = useState<"upload" | "manual">("upload");
-  const [components, setComponents] = useState<SalaryComponentsMonthly>({
-    basic: 50_000,
-    hra: 20_000,
-    specialAllowance: 15_000,
-    otherAllowance: 5_000,
-    bonusMonthly: 0,
-  });
-  const [deductions, setDeductions] = useState<SalaryDeductionsMonthly>({
-    employeePf: 6_000,
-    professionalTax: 200,
-    otherDeductions: 0,
-  });
-  const [otherIncomeAnnual, setOtherIncomeAnnual] = useState(0);
-  const [investments80CAnnual, setInvestments80CAnnual] = useState(0);
-  const [npsAnnual, setNpsAnnual] = useState(0);
+  const [components, setComponents] = useState<SalaryComponentsMonthly>(SAMPLE_COMPONENTS);
+  const [deductions, setDeductions] = useState<SalaryDeductionsMonthly>(SAMPLE_DEDUCTIONS);
+  const [otherIncomeAnnual, setOtherIncomeAnnual] = useState(30_000);
+  const [investments80CAnnual, setInvestments80CAnnual] = useState(60_000);
+  const [npsAnnual, setNpsAnnual] = useState(50_000);
   const [homeLoanInterestAnnual, setHomeLoanInterestAnnual] = useState(0);
-  const [tdsPaidYtd, setTdsPaidYtd] = useState(0);
+  const [tdsPaidYtd, setTdsPaidYtd] = useState(75_000);
   const [monthsRemaining, setMonthsRemaining] = useState(2);
   const [parseLoading, setParseLoading] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -208,30 +213,6 @@ export function SalaryPage() {
     if (next === country) return;
     onCountryChange(next);
   }, [country]);
-
-  const fillSample = () => {
-    setComponents({
-      basic: 62_500,
-      hra: 25_000,
-      specialAllowance: 18_000,
-      otherAllowance: 7_500,
-      bonusMonthly: 10_000,
-    });
-    setDeductions({
-      employeePf: 7_500,
-      professionalTax: 200,
-      otherDeductions: 800,
-    });
-    setOtherIncomeAnnual(30_000);
-    setInvestments80CAnnual(60_000);
-    setNpsAnnual(50_000);
-    setHomeLoanInterestAnnual(0);
-    setTdsPaidYtd(75_000);
-    setMonthsRemaining(2);
-    setParseResult(null);
-    setParseError(null);
-    setMode("manual");
-  };
 
   const onUpload = async (file: File | null) => {
     if (!file) return;
@@ -351,14 +332,15 @@ export function SalaryPage() {
   };
 
   return (
-    <div className={`${uiTheme.page} relative overflow-hidden pb-12 pt-10 text-white`}>
-      <Spotlight className="-top-56 left-0" fill="rgba(56, 189, 248, 0.35)" />
-      <div className="mx-auto max-w-6xl px-4">
+    <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+      <div className={`${uiTheme.page} relative w-full overflow-hidden pb-12 pt-10 text-white`}>
+        <Spotlight className="-top-56 left-0" fill="rgba(56, 189, 248, 0.35)" />
+        <div className="mx-auto max-w-6xl px-4">
         <div className="mb-8">
           <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs text-white/90 ${uiTheme.panelSoft}`}>
             <Wand2 className="h-3.5 w-3.5" /> Smart Tax Analysis
           </div>
-          <h1 className="mt-3 bg-gradient-to-r from-cyan-200 via-sky-300 to-blue-400 bg-clip-text text-4xl font-bold text-transparent">
+          <h1 className="mt-3 text-4xl font-bold text-[#93c5fd]">
             Tax Calculator
           </h1>
           <p className={`${uiTheme.textMuted} mt-2 max-w-2xl`}>
@@ -412,13 +394,6 @@ export function SalaryPage() {
                     )}
                   >
                     Manual Entry
-                  </button>
-                  <button
-                    type="button"
-                    onClick={fillSample}
-                    className="w-full rounded-xl border border-white/20 bg-slate-800/70 px-4 py-2 text-sm text-white/90 transition-colors hover:bg-slate-700/80 sm:w-auto"
-                  >
-                    Use sample data
                   </button>
                 </div>
 
@@ -601,7 +576,8 @@ export function SalaryPage() {
             </CardSpotlight>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </AuroraBackground>
   );
 }

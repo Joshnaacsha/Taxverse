@@ -154,7 +154,9 @@ export const AiAnalysisSchema = z
     summary: z.string(),
     stability: z.enum(["High", "Medium", "Low"]),
     futureWarning: z.string().optional(),
-    actionableAdvice: z.array(z.string()),
+    thisYearActions: z.array(z.string()).default([]),
+    nextYearPlanning: z.array(z.string()).default([]),
+    actionableAdvice: z.array(z.string()).optional(),
   })
   .strict();
 

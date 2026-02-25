@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AnalyzeResponse, CountryCode, IndiaItrPrefill, IndiaPersonalInfo, IndiaTaxInput, SalaryResult } from "@/lib/types";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { Spotlight } from "@/components/ui/spotlight";
+import { AuroraBackground } from "@/components/ui/aurora-background";
 import {
   AlertTriangle,
   FileText,
@@ -12,6 +13,9 @@ import {
   CheckCircle2,
   BadgeCheck,
   Sparkles,
+  ChevronDown,
+  Download,
+  Printer,
 } from "lucide-react";
 import { uiTheme } from "@/lib/uiTheme";
 import { prefillIndia } from "@/lib/api";
@@ -49,6 +53,14 @@ const COUNTRY_LABEL: Record<CountryCode, string> = {
   AE: "UAE",
 };
 
+const COUNTRY_OPTIONS: Array<{ value: CountryCode; label: string }> = [
+  { value: "IN", label: "India" },
+  { value: "US", label: "United States" },
+  { value: "UK", label: "United Kingdom" },
+  { value: "SG", label: "Singapore" },
+  { value: "AE", label: "UAE" },
+];
+
 const DEFAULT_IN_PREFILL: IndiaTaxInput = {
   annualSalary: 720000,
   otherIncome: 0,
@@ -57,6 +69,19 @@ const DEFAULT_IN_PREFILL: IndiaTaxInput = {
   homeLoanInterest: 0,
   nps: 0,
 };
+
+function isIndiaInput(input: unknown): input is IndiaTaxInput {
+  if (!input || typeof input !== "object") return false;
+  const obj = input as Record<string, unknown>;
+  return (
+    typeof obj.annualSalary === "number" &&
+    typeof obj.otherIncome === "number" &&
+    typeof obj.deductions80C === "number" &&
+    typeof obj.hra === "number" &&
+    typeof obj.homeLoanInterest === "number" &&
+    typeof obj.nps === "number"
+  );
+}
 
 const GUIDE_BY_COUNTRY: Record<CountryCode, GuideContent> = {
   IN: {
@@ -215,11 +240,14 @@ export function ItrGuidePage() {
     ?? (readSession<{ country: CountryCode; input: IndiaTaxInput }>("taxInput")?.country === "IN"
       ? readSession<{ country: CountryCode; input: IndiaTaxInput }>("taxInput")
       : null);
-  const [prefillInput, setPrefillInput] = useState<IndiaTaxInput>(savedTaxInput?.input ?? DEFAULT_IN_PREFILL);
-  const [prefillPersonal, setPrefillPersonal] = useState<IndiaPersonalInfo>({});
+  const [prefillPersonal, setPrefillPersonal] = useState<IndiaPersonalInfo>(() => readSession<IndiaPersonalInfo>("itrPersonal-IN") ?? {});
   const [prefillResult, setPrefillResult] = useState<IndiaItrPrefill | null>(null);
+  const [draftInputUsed, setDraftInputUsed] = useState<IndiaTaxInput | null>(null);
+  const [draftGeneratedAt, setDraftGeneratedAt] = useState<string | null>(null);
   const [prefillLoading, setPrefillLoading] = useState(false);
   const [prefillError, setPrefillError] = useState<string | null>(null);
+  const [countryMenuOpen, setCountryMenuOpen] = useState(false);
+  const countryMenuRef = useRef<HTMLDivElement>(null);
 
   const onCountryChange = (next: CountryCode) => {
     setSelectedCountry(next);
@@ -227,6 +255,22 @@ export function ItrGuidePage() {
       sessionStorage.setItem("itrGuideCountry", JSON.stringify(next));
     }
   };
+
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      if (!countryMenuRef.current) return;
+      if (!countryMenuRef.current.contains(event.target as Node)) {
+        setCountryMenuOpen(false);
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem("itrPersonal-IN", JSON.stringify(prefillPersonal));
+  }, [prefillPersonal]);
 
   const content = GUIDE_BY_COUNTRY[selectedCountry];
 
@@ -261,12 +305,132 @@ export function ItrGuidePage() {
     return notes.slice(0, 5);
   }, [result?.report, salary, selectedCountry]);
 
+  const autoDraftInput = useMemo<IndiaTaxInput>(() => {
+    if (salary?.derivedTaxInput) return salary.derivedTaxInput;
+
+    if (result?.country === "IN" && isIndiaInput(result.userInput)) {
+      return result.userInput;
+    }
+
+    if (savedTaxInput?.input) return savedTaxInput.input;
+
+    return DEFAULT_IN_PREFILL;
+  }, [salary?.derivedTaxInput, result, savedTaxInput]);
+
+  const downloadTextFile = (filename: string, text: string) => {
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(href);
+  };
+
+  const onDownloadJson = () => {
+    if (!prefillResult) return;
+    const payload = {
+      generatedAt: draftGeneratedAt,
+      inputUsed: draftInputUsed,
+      personal: prefillPersonal,
+      draft: prefillResult,
+    };
+    downloadTextFile(
+      `taxverse-itr-draft-${prefillResult.financialYear}.json`,
+      `${JSON.stringify(payload, null, 2)}\n`,
+    );
+  };
+
+  const onDownloadSummary = () => {
+    if (!prefillResult) return;
+    const lines: string[] = [];
+    lines.push(`Taxverse ITR Draft Pack (${prefillResult.form})`);
+    lines.push(`Financial Year: ${prefillResult.financialYear}`);
+    lines.push(`Generated At: ${draftGeneratedAt ?? new Date().toISOString()}`);
+    lines.push("");
+    lines.push("Input Snapshot");
+    lines.push(`Annual Salary: ${draftInputUsed?.annualSalary ?? autoDraftInput.annualSalary}`);
+    lines.push(`Other Income: ${draftInputUsed?.otherIncome ?? autoDraftInput.otherIncome}`);
+    lines.push(`Section 80C: ${draftInputUsed?.deductions80C ?? autoDraftInput.deductions80C}`);
+    lines.push(`HRA: ${draftInputUsed?.hra ?? autoDraftInput.hra}`);
+    lines.push(`NPS: ${draftInputUsed?.nps ?? autoDraftInput.nps}`);
+    lines.push(`Home Loan Interest: ${draftInputUsed?.homeLoanInterest ?? autoDraftInput.homeLoanInterest}`);
+    if (prefillPersonal.fullName) lines.push(`Name: ${prefillPersonal.fullName}`);
+    if (prefillPersonal.pan) lines.push(`PAN: ${prefillPersonal.pan}`);
+    if (prefillPersonal.dateOfBirth) lines.push(`DOB: ${prefillPersonal.dateOfBirth}`);
+    lines.push("");
+    prefillResult.sections.forEach((section) => {
+      lines.push(section.name);
+      section.fields.forEach((field) => {
+        const value = field.value === null || field.value === "" ? "-" : String(field.value);
+        lines.push(`- ${field.label}: ${value}`);
+      });
+      lines.push("");
+    });
+    if (prefillResult.notes.length) {
+      lines.push("Notes");
+      prefillResult.notes.forEach((note) => lines.push(`- ${note}`));
+    }
+    downloadTextFile(`taxverse-itr-draft-${prefillResult.financialYear}.txt`, `${lines.join("\n")}\n`);
+  };
+
+  const onOpenPrintPreview = () => {
+    if (!prefillResult) return;
+    const sectionsMarkup = prefillResult.sections
+      .map((section) => {
+        const fieldsMarkup = section.fields
+          .map((field) => {
+            const value = field.value === null || field.value === "" ? "-" : String(field.value);
+            return `<tr><td>${field.label}</td><td>${value}</td></tr>`;
+          })
+          .join("");
+        return `<section><h3>${section.name}</h3><table>${fieldsMarkup}</table></section>`;
+      })
+      .join("");
+
+    const popup = window.open("", "_blank", "width=960,height=900");
+    if (!popup) return;
+    popup.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Taxverse ITR Draft</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+    h1 { margin: 0 0 8px 0; }
+    h2 { margin: 0 0 20px 0; font-size: 16px; font-weight: 500; color: #334155; }
+    h3 { margin: 20px 0 8px 0; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    td { border: 1px solid #cbd5e1; padding: 8px; font-size: 13px; vertical-align: top; }
+    td:first-child { width: 45%; color: #334155; }
+    .meta { margin-bottom: 14px; font-size: 13px; color: #334155; }
+    .note { margin-top: 16px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Taxverse ITR Draft Pack</h1>
+  <h2>${prefillResult.form} | FY ${prefillResult.financialYear}</h2>
+  <div class="meta">Generated At: ${draftGeneratedAt ?? new Date().toISOString()}</div>
+  ${sectionsMarkup}
+  ${
+    prefillResult.notes.length
+      ? `<div class="note"><strong>Notes</strong><ul>${prefillResult.notes.map((n) => `<li>${n}</li>`).join("")}</ul></div>`
+      : ""
+  }
+</body>
+</html>`);
+    popup.document.close();
+    popup.focus();
+  };
+
   const onPrefill = async () => {
     setPrefillLoading(true);
     setPrefillError(null);
     try {
-      const res = await prefillIndia({ input: prefillInput, personal: prefillPersonal });
+      const res = await prefillIndia({ input: autoDraftInput, personal: prefillPersonal });
       setPrefillResult(res);
+      setDraftInputUsed(autoDraftInput);
+      setDraftGeneratedAt(new Date().toISOString());
     } catch (e) {
       setPrefillError(e instanceof Error ? e.message : "Prefill failed");
     } finally {
@@ -275,11 +439,12 @@ export function ItrGuidePage() {
   };
 
   return (
-    <div className={`${uiTheme.page} relative overflow-hidden pb-12 pt-10 text-white`}>
-      <Spotlight className="-top-44 left-0" fill="rgba(14,165,233,0.25)" />
-      <div className="mx-auto max-w-6xl px-4">
+    <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+      <div className={`${uiTheme.page} relative w-full overflow-hidden pb-12 pt-10 text-white`}>
+        <Spotlight className="-top-44 left-0" fill="rgba(14,165,233,0.25)" />
+        <div className="mx-auto max-w-6xl px-4">
         <div className="mb-8">
-          <h1 className="bg-gradient-to-r from-cyan-200 via-sky-300 to-blue-400 bg-clip-text text-4xl font-bold text-transparent">
+          <h1 className="text-4xl font-bold text-[#93c5fd]">
             {content.pageTitle}
           </h1>
           <p className={`${uiTheme.textMuted} mt-2 max-w-2xl`}>
@@ -290,20 +455,53 @@ export function ItrGuidePage() {
               <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300" />
               Country: {COUNTRY_LABEL[selectedCountry]}
             </div>
-            <label className="inline-flex items-center gap-2 text-xs text-white/80">
+            <div className="inline-flex items-center gap-2 text-xs text-white/80">
               <span className="font-medium">Change country:</span>
-              <select
-                value={selectedCountry}
-                onChange={(e) => onCountryChange(e.target.value as CountryCode)}
-                className="h-8 rounded-md border border-cyan-300/25 bg-slate-900/80 px-2 text-xs text-white focus:border-cyan-300/55 focus:outline-none"
-              >
-                <option value="IN">India</option>
-                <option value="US">United States</option>
-                <option value="UK">United Kingdom</option>
-                <option value="SG">Singapore</option>
-                <option value="AE">UAE</option>
-              </select>
-            </label>
+              <div ref={countryMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCountryMenuOpen((prev) => !prev)}
+                  className="inline-flex h-10 min-w-[170px] items-center justify-between gap-2 rounded-xl border border-[#1e3a8a80] bg-[#0f172ae6] px-3 text-sm text-white shadow-[0_10px_28px_-18px_rgba(37,99,235,0.75)] transition hover:border-[#2563ebaa] hover:bg-[#13203f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+                  aria-haspopup="listbox"
+                  aria-expanded={countryMenuOpen}
+                >
+                  <span>{COUNTRY_LABEL[selectedCountry]}</span>
+                  <ChevronDown
+                    className={cn("h-4 w-4 text-blue-200/90 transition-transform", countryMenuOpen && "rotate-180")}
+                  />
+                </button>
+                {countryMenuOpen ? (
+                  <div
+                    className="absolute left-0 top-[calc(100%+8px)] z-40 w-full overflow-hidden rounded-xl border border-[#2563eb80] bg-[#0b142be6] p-1.5 shadow-[0_22px_48px_-20px_rgba(8,47,73,0.95)] backdrop-blur-xl"
+                    role="listbox"
+                  >
+                    {COUNTRY_OPTIONS.map((country) => {
+                      const isActive = selectedCountry === country.value;
+                      return (
+                        <button
+                          key={country.value}
+                          type="button"
+                          onClick={() => {
+                            onCountryChange(country.value);
+                            setCountryMenuOpen(false);
+                          }}
+                          className={cn(
+                            "w-full rounded-lg px-2.5 py-2 text-left text-sm transition",
+                            isActive
+                              ? "bg-[#1d4ed8]/35 text-cyan-100"
+                              : "text-white/90 hover:bg-[#1e3a8a4d] hover:text-cyan-100",
+                          )}
+                          role="option"
+                          aria-selected={isActive}
+                        >
+                          {country.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -331,70 +529,37 @@ export function ItrGuidePage() {
             <div className="relative z-10">
               <div className="mb-3 flex items-center gap-2 font-semibold">
                 <FileText className="h-5 w-5 text-cyan-300" />
-                ITR Prefill (India)
+                ITR Draft Pack (India)
               </div>
               <p className={`text-sm ${uiTheme.textMuted}`}>
-                Add 80C and freelancing income to generate a prefilled ITR-1 style summary.
+                Uses your existing salary and analysis data to generate an ITR-1 style draft you can preview and download.
               </p>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-3">
-                <label className="grid gap-2">
-                  <div className="text-sm font-medium text-white">Annual Salary</div>
-                  <input
-                    type="number"
-                    value={prefillInput.annualSalary}
-                    onChange={(e) => setPrefillInput({ ...prefillInput, annualSalary: Number(e.target.value) })}
-                    className={cn("h-10 rounded-xl px-3 text-sm", uiTheme.field)}
-                  />
-                </label>
-                <label className="grid gap-2">
-                  <div className="text-sm font-medium text-white">Freelancing / Side Income</div>
-                  <input
-                    type="number"
-                    value={prefillInput.otherIncome}
-                    onChange={(e) => setPrefillInput({ ...prefillInput, otherIncome: Number(e.target.value) })}
-                    className={cn("h-10 rounded-xl px-3 text-sm", uiTheme.field)}
-                  />
-                </label>
-                <label className="grid gap-2">
-                  <div className="text-sm font-medium text-white">Section 80C</div>
-                  <input
-                    type="number"
-                    value={prefillInput.deductions80C}
-                    onChange={(e) => setPrefillInput({ ...prefillInput, deductions80C: Number(e.target.value) })}
-                    className={cn("h-10 rounded-xl px-3 text-sm", uiTheme.field)}
-                  />
-                </label>
-              </div>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
-                <label className="grid gap-2">
-                  <div className="text-sm font-medium text-white">HRA Exemption</div>
-                  <input
-                    type="number"
-                    value={prefillInput.hra}
-                    onChange={(e) => setPrefillInput({ ...prefillInput, hra: Number(e.target.value) })}
-                    className={cn("h-10 rounded-xl px-3 text-sm", uiTheme.field)}
-                  />
-                </label>
-                <label className="grid gap-2">
-                  <div className="text-sm font-medium text-white">NPS (80CCD)</div>
-                  <input
-                    type="number"
-                    value={prefillInput.nps}
-                    onChange={(e) => setPrefillInput({ ...prefillInput, nps: Number(e.target.value) })}
-                    className={cn("h-10 rounded-xl px-3 text-sm", uiTheme.field)}
-                  />
-                </label>
-                <label className="grid gap-2">
-                  <div className="text-sm font-medium text-white">Home Loan Interest</div>
-                  <input
-                    type="number"
-                    value={prefillInput.homeLoanInterest}
-                    onChange={(e) => setPrefillInput({ ...prefillInput, homeLoanInterest: Number(e.target.value) })}
-                    className={cn("h-10 rounded-xl px-3 text-sm", uiTheme.field)}
-                  />
-                </label>
+              <div className="mt-5 grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs text-white/65">Annual Salary</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{autoDraftInput.annualSalary.toLocaleString("en-IN")}</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs text-white/65">Other Income</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{autoDraftInput.otherIncome.toLocaleString("en-IN")}</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs text-white/65">Section 80C</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{autoDraftInput.deductions80C.toLocaleString("en-IN")}</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs text-white/65">HRA</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{autoDraftInput.hra.toLocaleString("en-IN")}</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs text-white/65">NPS</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{autoDraftInput.nps.toLocaleString("en-IN")}</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs text-white/65">Home Loan Interest</div>
+                  <div className="mt-1 text-sm font-semibold text-white">{autoDraftInput.homeLoanInterest.toLocaleString("en-IN")}</div>
+                </div>
               </div>
 
               <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -435,13 +600,18 @@ export function ItrGuidePage() {
                   disabled={prefillLoading}
                   className={cn("inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold", uiTheme.cta)}
                 >
-                  {prefillLoading ? "Generating..." : "Generate Prefill"}
+                  {prefillLoading ? "Generating..." : "Generate Draft Pack"}
                 </button>
                 {prefillError ? <div className="text-sm text-rose-300">{prefillError}</div> : null}
               </div>
 
               {prefillResult ? (
                 <div className="mt-6 grid gap-4">
+                  <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/5 p-4 text-xs text-cyan-100/85">
+                    <div>Form: {prefillResult.form}</div>
+                    <div className="mt-1">Financial Year: {prefillResult.financialYear}</div>
+                    {draftGeneratedAt ? <div className="mt-1">Generated: {new Date(draftGeneratedAt).toLocaleString()}</div> : null}
+                  </div>
                   {prefillResult.sections.map((section) => (
                     <div key={section.name} className="rounded-2xl border border-white/15 bg-white/5 p-4">
                       <div className="mb-3 text-sm font-semibold text-white">{section.name}</div>
@@ -450,13 +620,52 @@ export function ItrGuidePage() {
                           <div key={field.key} className="flex items-center justify-between gap-3 text-sm">
                             <span className={uiTheme.textMuted}>{field.label}</span>
                             <span className="font-semibold text-white">
-                              {field.value !== null && field.value !== "" ? field.value : "—"}
+                              {field.value !== null && field.value !== "" ? field.value : "-"}
                             </span>
                           </div>
                         ))}
                       </div>
                     </div>
                   ))}
+                  {prefillResult.notes.length ? (
+                    <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+                      <div className="mb-2 text-sm font-semibold text-white">Important Notes</div>
+                      <ul className={`space-y-2 text-sm ${uiTheme.textMuted}`}>
+                        {prefillResult.notes.map((note) => (
+                          <li key={note} className="flex gap-2">
+                            <span className="text-white/56">-</span>
+                            <span>{note}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={onDownloadJson}
+                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/35 bg-cyan-400/10 px-4 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download JSON
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onDownloadSummary}
+                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/35 bg-cyan-400/10 px-4 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Download Summary
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onOpenPrintPreview}
+                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/35 bg-cyan-400/10 px-4 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/20"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      Print / Save PDF
+                    </button>
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -497,7 +706,8 @@ export function ItrGuidePage() {
             {content.mistakes}
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </AuroraBackground>
   );
 }

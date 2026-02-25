@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import type { AnalyzeResponse, QaMessage, SalaryResult } from "@/lib/types";
 import { askQuestion } from "@/lib/api";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { cn } from "@/lib/utils";
-import { MessageCircle, AlertCircle, Lightbulb, HelpCircle } from "lucide-react";
+import { MessageCircle, Lightbulb, HelpCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { AuroraBackground } from "@/components/ui/aurora-background";
 import { Spotlight } from "@/components/ui/spotlight";
@@ -205,7 +205,7 @@ export function QAPage() {
           transition={{ duration: 0.7, ease: "easeInOut" }}
           className="mb-8"
         >
-          <h1 className="mb-2 bg-gradient-to-r from-cyan-200 via-sky-300 to-blue-400 bg-clip-text text-4xl font-bold text-transparent">
+          <h1 className="mb-2 text-4xl font-bold text-[#93c5fd]">
             Ask Questions
           </h1>
           <p className="text-white/78">
@@ -253,10 +253,10 @@ export function QAPage() {
                       Try questions like:
                     </p>
                     <ul className="text-sm text-white/72 mt-3 space-y-1">
-                      <li>• "Why is this option better for me?"</li>
-                      <li>• "What if my salary increases next year?"</li>
-                      <li>• "How can I save more tax from now?"</li>
-                      <li>• "What should I change for next year?"</li>
+                      <li>• Why is this option better for me?</li>
+                      <li>• What if my salary increases next year?</li>
+                      <li>• How can I save more tax from now?</li>
+                      <li>• What should I change for next year?</li>
                     </ul>
                   </div>
                 </div>
@@ -271,7 +271,7 @@ export function QAPage() {
                       )}
                     >
                       {msg.role === "assistant" && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#2563eb] flex items-center justify-center text-xs font-bold flex-shrink-0">
                           AI
                         </div>
                       )}
@@ -295,7 +295,7 @@ export function QAPage() {
 
                   {qaLoading && (
                     <div className="flex gap-3 justify-start">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#2563eb] flex items-center justify-center text-xs font-bold flex-shrink-0">
                         AI
                       </div>
                       <div className="bg-white/10 text-white/90 border border-white/20 rounded-2xl px-4 py-3 text-sm">
@@ -374,7 +374,7 @@ export function QAPage() {
               <ul className="space-y-2 text-sm text-white/78">
                 <li>• Be specific with numbers</li>
                 <li>• Ask about your situation</li>
-                <li>• Ask "what-if" scenarios</li>
+                <li>• Ask what-if scenarios</li>
                 <li>• Request explanations</li>
               </ul>
             </div>
@@ -387,10 +387,10 @@ export function QAPage() {
                 Example Questions
               </h3>
               <ul className="space-y-2 text-sm text-white/78">
-                <li>• "Why is this regime better for me?"</li>
-                <li>• "How can I save more tax next year?"</li>
-                <li>• "What are my top deductions to focus on?"</li>
-                <li>• "If my salary goes up, what should I do?"</li>
+                <li>• Why is this regime better for me?</li>
+                <li>• How can I save more tax next year?</li>
+                <li>• What are my top deductions to focus on?</li>
+                <li>• If my salary goes up, what should I do?</li>
               </ul>
             </div>
           </CardSpotlight>
@@ -399,4 +399,5 @@ export function QAPage() {
     </AuroraBackground>
   );
 }
+
 

@@ -13,6 +13,7 @@ import type {
 } from "@/lib/types";
 import { analyzeTax } from "@/lib/api";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
+import { AuroraBackground } from "@/components/ui/aurora-background";
 import { cn } from "@/lib/utils";
 import { DollarSign, Briefcase, TrendingUp, AlertCircle, Zap } from "lucide-react";
 import { uiTheme } from "@/lib/uiTheme";
@@ -187,8 +188,9 @@ export function CalculatorPage() {
   };
 
   return (
-    <div className={`${uiTheme.page} pt-8 pb-12`}>
-      <div className="mx-auto max-w-4xl px-4">
+    <AuroraBackground className="min-h-screen h-auto justify-start bg-[#020617] text-white">
+      <div className={`${uiTheme.page} w-full pt-8 pb-12`}>
+        <div className="mx-auto max-w-4xl px-4">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Tax Calculator</h1>
           <p className={uiTheme.textMuted}>Multi-country calculator with AI explanation + Q&A</p>
@@ -384,7 +386,8 @@ export function CalculatorPage() {
             </div>
           </CardSpotlight>
         </div>
+        </div>
       </div>
-    </div>
+    </AuroraBackground>
   );
 }
